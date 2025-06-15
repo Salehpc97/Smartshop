@@ -17,5 +17,8 @@
   "bugs": {
     "url": "https://github.com/Salehpc97/Smartshop/issues"
   },
-  "homepage": "https://github.com/Salehpc97/Smartshop#readme"
+  "homepage": "https://github.com/Salehpc97/Smartshop#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.50.0"
+  }
 }
