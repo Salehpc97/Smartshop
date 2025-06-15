@@ -11,7 +11,8 @@ const DEFAULT_CATEGORIES = {
 
 // --- ناقل الأحداث (Event Bus) ---
 class EventBus {
-    constructor() { this.listeners = {}; }
+    constructor() { this.listeners = {};
+ }
     on(eventName, callback) {
         if (!this.listeners[eventName]) this.listeners[eventName] = [];
         this.listeners[eventName].push(callback);
@@ -26,6 +27,7 @@ class EventBus {
 // --- الفئة الرئيسية للتطبيق ---
 class SmartShoppingApp {
     constructor() {
+        this.userId = 'user-test-123'; // معرف مستخدم ثابت للاختبار
         this._getDomElements();
         // **تصحيح مهم**: التحقق من وجود كل العناصر قبل المتابعة
         if (!this.itemInput || !this.addItemBtn || !this.clearAllBtn || !this.addCustomItemBtn) {
@@ -37,7 +39,6 @@ class SmartShoppingApp {
         this._bindEventListeners();
         this.eventBus = new EventBus();
         this._subscribeToEvents();
-        this.render();
     }
 
     _getDomElements() {
@@ -48,13 +49,49 @@ class SmartShoppingApp {
         this.suggestionsContainer = document.getElementById('suggestions-container');
         this.addCustomItemBtn = document.getElementById('addCustomItem');
     }
-
-    _initializeData() {
+// الدالة قبل التعديل ---
+    /*_initializeData() {
         const savedCategories = localStorage.getItem('categories');
         this.categories = savedCategories ? JSON.parse(savedCategories) : structuredClone(DEFAULT_CATEGORIES);
         this.allItemsForAutocomplete = Object.values(this.categories).flat();
         this.shoppingData = JSON.parse(localStorage.getItem('shoppingList')) || { 'فواكه': [], 'خضروات': [], 'معلبات': [], 'أخرى': [] };
     }
+*/
+// الدالة بعد التعديل ---
+// الكود المعدل والمقترح لدالة _initializeData
+async _initializeData() {
+    // عرض رسالة تحميل للمستخدم
+    this.categoriesList.innerHTML = '<li>جاري تحميل القائمة...</li>';
+
+    try {
+        // إنشاء مصفوفة من الوعود (Promises) لجلب البيانات بشكل متزامن
+        const [shoppingListResponse, categoriesResponse] = await Promise.all([
+            fetch(`/api/getList?userId=${this.userId}`),
+            fetch(`/api/getCategories?userId=${this.userId}`)
+        ]);
+
+        if (!shoppingListResponse.ok || !categoriesResponse.ok) {
+            throw new Error('فشل في جلب البيانات الأولية من الخادم');
+        }
+
+        const shoppingListData = await shoppingListResponse.json();
+        const categoriesData = await categoriesResponse.json();
+
+        // تحديث بيانات التطبيق بالبيانات القادمة من الخادم
+        this.shoppingData = shoppingListData.data || { 'فواكه': [], 'خضروات': [], 'معلبات':[], 'أخرى': [] };
+        this.categories = categoriesData.data || structuredClone(DEFAULT_CATEGORIES);
+        
+    } catch (error) {
+        console.error("خطأ في تهيئة البيانات:", error);
+        // في حالة الفشل، عد إلى البيانات الافتراضية
+        this.shoppingData = { 'فواكه': [], 'خضروات': [], 'معلبات':[], 'أخرى': [] };
+        this.categories = structuredClone(DEFAULT_CATEGORIES);
+    } finally {
+        // تحديث قائمة الإكمال التلقائي وعرض البيانات على الشاشة
+        this.allItemsForAutocomplete = Object.values(this.categories).flat();
+        this.render(); // عرض البيانات بعد اكتمال التحميل
+    }
+}
 
     _bindEventListeners() {
         this.addItemBtn.addEventListener('click', this.addItem.bind(this));
@@ -102,12 +139,76 @@ class SmartShoppingApp {
         document.querySelector('.custom-modal').remove();
     }
 
-    _saveCategories() {
+    /*_saveCategories() {
         localStorage.setItem('categories', JSON.stringify(this.categories));
     }
+*/
+async _saveCategories() {
+    if (!this.userId) {
+        console.error("لا يمكن حفظ الفئات: لم يتم تحديد هوية المستخدم.");
+        return;
+    }
 
-    _saveShoppingData() {
+    try {
+        const response = await fetch('/api/saveCategories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                categories: this.categories,
+                userId: this.userId
+            }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message);
+        }
+
+        const result = await response.json();
+        console.log(result.message);
+
+    } catch (error) {
+        console.error("فشل في مزامنة الفئات مع الخادم:", error);
+    }
+}
+
+    /*_saveShoppingData() {
         localStorage.setItem('shoppingList', JSON.stringify(this.shoppingData));
+    }
+    */
+    async _saveShoppingData() {
+        // نتحقق من وجود معرف للمستخدم قبل محاولة الحفظ
+        if (!this.userId) {
+            console.error("لا يمكن الحفظ: لم يتم تحديد هوية المستخدم.");
+            return;
+        }
+    
+        try {
+            // نستدعي الدالة الخادمة التي أنشأناها على Vercel[1]
+            const response = await fetch('/api/saveShoppingList', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    shoppingList: this.shoppingData, // نرسل القائمة الحالية
+                    userId: this.userId             // نرسل معرف المستخدم
+                }),
+            });
+    
+            if (!response.ok) {
+                // إذا فشل الخادم، اعرض رسالة خطأ
+                const errorData = await response.json();
+                throw new Error(errorData.message);
+            }
+    
+            const result = await response.json();
+            console.log(result.message); // "تم تحديث قائمة التسوق بنجاح!"
+    
+        } catch (error) {
+            console.error("فشل في مزامنة قائمة التسوق مع الخادم:", error);
+            // هنا يمكنك عرض رسالة للمستخدم تفيد بوجود مشكلة في الحفظ
+        }
     }
     
     render() {
