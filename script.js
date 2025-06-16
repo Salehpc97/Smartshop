@@ -27,7 +27,7 @@ class EventBus {
 // --- الفئة الرئيسية للتطبيق ---
 class SmartShoppingApp {
     constructor() {
-        this.userId = 'user-test-123'; // معرف مستخدم ثابت للاختبار
+        this.userId = 'bcdd1361-a8dc-4feb-88aa-48d3d2724b5a'; // معرف مستخدم ثابت للتشغيل
         this._getDomElements();
         // **تصحيح مهم**: التحقق من وجود كل العناصر قبل المتابعة
         if (!this.itemInput || !this.addItemBtn || !this.clearAllBtn || !this.addCustomItemBtn) {
