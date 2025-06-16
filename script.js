@@ -27,7 +27,7 @@ class EventBus {
 // --- الفئة الرئيسية للتطبيق ---
 class SmartShoppingApp {
     constructor() {
-        this.userId = 'bcdd1361-a8dc-4feb-88aa-48d3d2724b5a'; // معرف مستخدم ثابت للتشغيل
+        this.userId = 'bcdd1361-a8dc-4feb-88aa-48d3d2724b5a'; // 
         this._getDomElements();
         // **تصحيح مهم**: التحقق من وجود كل العناصر قبل المتابعة
         if (!this.itemInput || !this.addItemBtn || !this.clearAllBtn || !this.addCustomItemBtn) {
