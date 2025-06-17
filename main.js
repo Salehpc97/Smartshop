@@ -1,4 +1,4 @@
-// /main.js
+// /main.js (النسخة الكاملة والمحدثة)
 import eventBus from './eventBus.js';
 import ApiService from './api.js';
 import UIController from './ui.js';
@@ -11,8 +11,8 @@ class App {
     this.shoppingData = {};
     this.categories = {};
     
-    this._subscribeToEvents();
     this._initializeApp();
+    this._subscribeToEvents();
   }
 
   async _initializeApp() {
@@ -22,7 +22,7 @@ class App {
         this.api.getCategories()
       ]);
       this.shoppingData = listResult.data || {};
-      this.categories = categoriesResult.data || {}; // استخدم البيانات الافتراضية إذا فشل الجلب
+      this.categories = categoriesResult.data || {};
       this.ui.render(this.shoppingData);
     } catch (error) {
       console.error("Initialization failed:", error);
@@ -30,26 +30,67 @@ class App {
     }
   }
 
+  // --- هنا قمنا بإعادة بناء "العقل" الذكي للتطبيق ---
+  _getCategory(itemName) {
+    const searchTerm = itemName.trim().toLowerCase();
+    if (!searchTerm) return { category: 'أخرى', matchedItem: itemName.trim() };
+
+    for (const category in this.categories) {
+        const foundItem = this.categories[category].find(item => item.toLowerCase() === searchTerm);
+        if (foundItem) return { category, matchedItem: foundItem };
+    }
+    return { category: 'أخرى', matchedItem: itemName.trim() };
+  }
+
+  // --- هنا قمنا بملء "دليل التعليمات" للمدير ---
   _subscribeToEvents() {
-    eventBus.on('ui:addItem', (itemName) => {
+    eventBus.on('ui:addItem', async (itemName) => {
       this.ui.hideError();
-      // انقل كل منطق دالة addItem القديمة إلى هنا
-      // 1. تحقق من الإدخال
       if (!itemName) return;
-      // 2. ابحث عن الفئة
-      // 3. تحقق من التكرار
-      // 4. قم بتحديث this.shoppingData
-      // 5. اطلب من الخادم الحفظ
-      this.api.saveShoppingList(this.shoppingData).catch(e => this.ui.showError("فشل الحفظ"));
-      // 6. اطلب من الواجهة إعادة الرسم
+
+      const { category, matchedItem } = this._getCategory(itemName);
+
+      if (category === 'أخرى') {
+        this.ui.showError(`العنصر "${itemName}" غير معروف. حاول إضافته كعنصر مخصص.`);
+        return;
+      }
+      
+      if (this.shoppingData[category] && this.shoppingData[category].some(item => (item.name || item) === matchedItem)) {
+        this.ui.showError(`"${matchedItem}" موجود بالفعل في قائمتك.`);
+        return;
+      }
+
+      // تحديث البيانات المحلية
+      this.shoppingData[category] = this.shoppingData[category] || [];
+      this.shoppingData[category].push({ name: matchedItem, category });
+
+      // إعادة رسم الواجهة فورًا (تجربة مستخدم أفضل)
       this.ui.render(this.shoppingData);
       this.ui.clearInput();
+
+      // محاولة الحفظ في الخادم في الخلفية
+      try {
+        await this.api.saveShoppingList(this.shoppingData);
+      } catch (error) {
+        console.error("Save failed:", error);
+        this.ui.showError("فشل حفظ التغييرات في الخادم.");
+        // يمكنك هنا إضافة منطق للتراجع عن التغيير إذا فشل الحفظ
+      }
     });
 
-    eventBus.on('ui:clearAll', () => {
-        // منطق مسح الكل هنا
+    eventBus.on('ui:clearAll', async () => {
+      this.shoppingData = {};
+      this.ui.render(this.shoppingData);
+      try {
+        await this.api.saveShoppingList(this.shoppingData);
+      } catch (error) {
+        console.error("Clear failed:", error);
+        this.ui.showError("فشل مسح القائمة في الخادم.");
+      }
     });
+    
+    // يمكنك إضافة مستمع لـ ui:showCustomModal هنا بنفس الطريقة
   }
 }
 
-new App();
+new App(); // بدء تشغيل التطبيق
