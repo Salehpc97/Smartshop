@@ -133,24 +133,35 @@ _subscribeToEvents() {
         return null;
     }
 
-    _addCustomItem() {
-        const itemName = document.getElementById('newItemName').value.trim();
-        const selectedCategory = document.getElementById('categorySelect').value;
-        
-        if (!itemName) return alert('الرجاء إدخال اسم العنصر');
+    // الشكل الصحيح والنهائي لدالة _addCustomItem
+_addCustomItem() {
+    const itemName = document.getElementById('newItemName').value.trim();
+    const selectedCategory = document.getElementById('categorySelect').value;
+    
+    if (!itemName) return alert('الرجاء إدخال اسم العنصر');
 
-        const existingCategory = this._itemExistsInAnyCategory(itemName);
-        if (existingCategory) {
-            return alert(`هذا العنصر موجود بالفعل في فئة "${existingCategory}"!`);
-        }
-       
-        this.categories[selectedCategory].push(itemName);
-        this.allItemsForAutocomplete.push(itemName);
-        this._saveCategories();
-        
-        alert(`تمت إضافة '${itemName}' إلى فئة '${selectedCategory}' بنجاح!`);
-        document.querySelector('.custom-modal').remove();
+    const existingCategory = this._itemExistsInAnyCategory(itemName);
+    if (existingCategory) {
+        return alert(`هذا العنصر موجود بالفعل في فئة "${existingCategory}"!`);
     }
+   
+    // الخطوة أ: قم بتحديث قائمة الفئات محليًا
+    this.categories[selectedCategory].push(itemName);
+    this.allItemsForAutocomplete.push(itemName);
+
+    // الخطوة ب (الجديدة والمهمة): أضف العنصر إلى قائمة التسوق الفعلية
+    if (!this.shoppingData[selectedCategory]) {
+        this.shoppingData[selectedCategory] = [];
+    }
+    this.shoppingData[selectedCategory].push(itemName);
+
+    // الخطوة ج (الحاسمة): أطلق الإشارة لمركز القيادة ليتولى الحفظ
+    this.eventBus.emit('dataChanged');
+    
+    alert(`تمت إضافة '${itemName}' إلى فئة '${selectedCategory}' بنجاح!`);
+    document.querySelector('.custom-modal').remove();
+}
+
 
     /*_saveCategories() {
         localStorage.setItem('categories', JSON.stringify(this.categories));
