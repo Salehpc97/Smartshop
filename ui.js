@@ -6,7 +6,6 @@ class UIController {
     this.itemInput = document.getElementById('itemInput');
     this.categoriesList = document.getElementById('categories');
     this.errorMessageContainer = document.getElementById('error-message-container');
-    // --- العنصر المفقود الأول: إضافة حاوية الاقتراحات ---
     this.suggestionsContainer = document.getElementById('suggestions-container');
     this._bindGlobalEvents();
   }
@@ -21,8 +20,7 @@ class UIController {
     document.getElementById('addCustomItem').addEventListener('click', () => {
       eventBus.emit('ui:showCustomModal');
     });
-
-    // --- العنصر المفقود الثاني: الاستماع إلى إدخالات المستخدم ---
+    // الاستماع إلى إدخالات المستخدم لتشغيل الإكمال التلقائي
     this.itemInput.addEventListener('input', () => {
       eventBus.emit('ui:inputChanged', this.itemInput.value);
     });
@@ -50,8 +48,7 @@ class UIController {
       this.categoriesList.appendChild(categorySection);
     });
   }
-
-  // --- العنصر المفقود الثالث: دوال إدارة الإكمال التلقائي ---
+  
   renderSuggestions(suggestions) {
     this.suggestionsContainer.innerHTML = '';
     if (suggestions.length === 0) return;
@@ -67,16 +64,64 @@ class UIController {
   clearSuggestions() {
     this.suggestionsContainer.innerHTML = '';
   }
-
+  
   setInput(value) {
     this.itemInput.value = value;
   }
 
-  // --- بقية الدوال (صحيحة وكاملة) ---
-  showCustomItemModal(categories) { /* ... الكود الحالي هنا، وهو صحيح ... */ }
-  showError(message) { /* ... الكود الحالي هنا، وهو صحيح ... */ }
-  hideError() { /* ... الكود الحالي هنا، وهو صحيح ... */ }
-  clearInput() { /* ... الكود الحالي هنا، وهو صحيح ... */ }
+  showCustomItemModal(categories) {
+    const existingModal = document.querySelector('.custom-modal');
+    if (existingModal) existingModal.remove();
+
+    const modal = document.createElement('div');
+    modal.className = 'custom-modal';
+    const modalContent = document.createElement('div');
+    modalContent.className = 'modal-content';
+    const closeBtn = document.createElement('span');
+    closeBtn.className = 'close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.onclick = () => modal.remove();
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.placeholder = 'اسم العنصر الجديد';
+    const categorySelect = document.createElement('select');
+    for (const category in categories) {
+      if (category !== 'أخرى') {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        categorySelect.appendChild(option);
+      }
+    }
+    const confirmBtn = document.createElement('button');
+    confirmBtn.textContent = 'تأكيد الإضافة';
+    confirmBtn.onclick = () => {
+      const itemName = nameInput.value.trim();
+      const selectedCategory = categorySelect.value;
+      if (!itemName) return alert('الرجاء إدخال اسم العنصر');
+      eventBus.emit('ui:addCustomItemConfirmed', { itemName, selectedCategory });
+      modal.remove();
+    };
+    modalContent.append(closeBtn, nameInput, categorySelect, confirmBtn);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+  }
+
+  showError(message) {
+    this.errorMessageContainer.textContent = message;
+    this.errorMessageContainer.style.visibility = 'visible';
+    this.errorMessageContainer.style.opacity = '1';
+  }
+
+  hideError() {
+    this.errorMessageContainer.style.opacity = '0';
+    setTimeout(() => this.errorMessageContainer.style.visibility = 'hidden', 300);
+  }
+  
+  clearInput() {
+    this.itemInput.value = '';
+    this.itemInput.focus();
+  }
 }
 
 export default UIController;

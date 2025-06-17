@@ -10,9 +10,7 @@ class App {
     this.ui = new UIController();
     this.shoppingData = {};
     this.categories = {};
-    // الحالة الجديدة والمهمة للإكمال التلقائي
     this.allItemsForAutocomplete = [];
-    
     this._initializeApp();
     this._subscribeToEvents();
   }
@@ -20,71 +18,109 @@ class App {
   async _initializeApp() {
     try {
       const [listResult, categoriesResult] = await Promise.all([
-        this.api.getShoppingList(),
-        this.api.getCategories()
+        this.api.getShoppingList(), this.api.getCategories()
       ]);
       this.shoppingData = listResult.data || {};
       this.categories = categoriesResult.data || {};
-      // نقوم بتجميع كل العناصر المعروفة في مصفوفة واحدة
       this.allItemsForAutocomplete = Object.values(this.categories).flat();
       this.ui.render(this.shoppingData);
     } catch (error) {
-      console.error("Initialization failed:", error);
-      this.ui.showError("فشل تحميل البيانات من الخادم.");
+      this.ui.showError("فشل تحميل البيانات.");
     }
   }
-
+  
   _getCategory(itemName) {
     const searchTerm = itemName.trim().toLowerCase();
     for (const category in this.categories) {
-        const foundItem = this.categories[category].find(item => item.toLowerCase() === searchTerm);
-        if (foundItem) return { category, matchedItem: foundItem };
+      const foundItem = this.categories[category].find(item => item.toLowerCase() === searchTerm);
+      if (foundItem) return { category, matchedItem: foundItem };
     }
     return { category: 'أخرى', matchedItem: itemName.trim() };
   }
 
+  _saveData = async () => {
+    try {
+        await this.api.saveShoppingList(this.shoppingData);
+    } catch (error) {
+        this.ui.showError("فشل حفظ التغييرات.");
+    }
+  }
+
   _subscribeToEvents() {
-    // 1. التعامل مع إضافة عنصر
     eventBus.on('ui:addItem', async (itemName) => {
-        // ... الكود الحالي لإضافة عنصر هنا ...
+      this.ui.hideError();
+      if (!itemName) return;
+      const { category, matchedItem } = this._getCategory(itemName);
+
+      if (category === 'أخرى' || !matchedItem) {
+        this.ui.showError(`العنصر "${itemName}" غير معروف.`);
+        return;
+      }
+      if (this.shoppingData[category] && this.shoppingData[category].some(item => (item.name || item) === matchedItem)) {
+        this.ui.showError(`"${matchedItem}" موجود بالفعل في قائمتك.`);
+        return;
+      }
+      this.shoppingData[category] = this.shoppingData[category] || [];
+      this.shoppingData[category].push({ name: matchedItem, category });
+      this.ui.render(this.shoppingData);
+      this.ui.clearInput();
+      this._saveData();
     });
 
-    // 2. التعامل مع حذف عنصر
     eventBus.on('ui:deleteItem', async ({ name, category }) => {
-        // ... الكود الحالي لحذف عنصر هنا ...
-    });
-    
-    // 3. التعامل مع مسح الكل
-    eventBus.on('ui:clearAll', async () => {
-        // ... الكود الحالي لمسح الكل هنا ...
-    });
-    
-    // 4. التعامل مع إظهار النافذة المنبثقة
-    eventBus.on('ui:showCustomModal', () => {
-        this.ui.showCustomItemModal(this.categories);
+      if (this.shoppingData[category]) {
+        this.shoppingData[category] = this.shoppingData[category].filter(item => (item.name || item) !== name);
+        if (this.shoppingData[category].length === 0) {
+          delete this.shoppingData[category];
+        }
+        this.ui.render(this.shoppingData);
+        this._saveData();
+      }
     });
 
-    // --- هنا قمنا بإعادة بناء منطق الإكمال التلقائي المفقود ---
+    eventBus.on('ui:clearAll', async () => {
+      this.shoppingData = {};
+      this.ui.render(this.shoppingData);
+      this._saveData();
+    });
+
     eventBus.on('ui:inputChanged', (inputValue) => {
-        if (!inputValue) {
-            this.ui.clearSuggestions();
-            return;
-        }
-        const suggestions = this.allItemsForAutocomplete.filter(item => 
-            item.toLowerCase().startsWith(inputValue.toLowerCase())
-        );
-        this.ui.renderSuggestions(suggestions.slice(0, 5));
+      if (!inputValue) {
+        this.ui.clearSuggestions();
+        return;
+      }
+      const suggestions = this.allItemsForAutocomplete.filter(item => 
+          item.toLowerCase().startsWith(inputValue.toLowerCase())
+      );
+      this.ui.renderSuggestions(suggestions.slice(0, 5));
     });
 
     eventBus.on('ui:suggestionClicked', (suggestion) => {
-        this.ui.setInput(suggestion);
-        this.ui.clearSuggestions();
+      this.ui.setInput(suggestion);
+      this.ui.clearSuggestions();
     });
 
-    // 5. يمكنك إضافة مستمع هنا لـ 'ui:addCustomItemConfirmed'
+    eventBus.on('ui:showCustomModal', () => {
+      this.ui.showCustomItemModal(this.categories);
+    });
+
     eventBus.on('ui:addCustomItemConfirmed', async ({itemName, selectedCategory}) => {
-        // هنا تضع منطق إضافة العنصر المخصص، والتحقق من التكرار، والحفظ في الخادم
-        console.log(`تم استلام طلب إضافة: ${itemName} في فئة ${selectedCategory}`);
+      if (this.allItemsForAutocomplete.includes(itemName)) {
+        return alert(`العنصر "${itemName}" موجود بالفعل في النظام.`);
+      }
+      this.categories[selectedCategory].push(itemName);
+      this.allItemsForAutocomplete.push(itemName);
+      this.shoppingData[selectedCategory] = this.shoppingData[selectedCategory] || [];
+      this.shoppingData[selectedCategory].push({ name: itemName, category: selectedCategory });
+      this.ui.render(this.shoppingData);
+      try {
+        await Promise.all([
+            this.api.saveShoppingList(this.shoppingData),
+            this.api.saveCategories(this.categories)
+        ]);
+      } catch (error) {
+        this.ui.showError("فشل حفظ العنصر المخصص.");
+      }
     });
   }
 }
