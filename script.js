@@ -104,10 +104,23 @@ async _initializeData() {
         this.addCustomItemBtn.addEventListener('click', () => this._showCustomItemModal());
     }
 
-    _subscribeToEvents() {
-        this.eventBus.on('dataChanged', () => this._saveShoppingData());
-        this.eventBus.on('dataChanged', () => this.render());
-    }
+    // الشكل الصحيح والنهائي الذي يجمع كل شيء
+_subscribeToEvents() {
+    // هذا هو "المستمع" الوحيد الذي ينتظر إشارة 'dataChanged'
+    this.eventBus.on('dataChanged', () => {
+        // رسالة للتحقق في سجلات المتصفح
+        console.log("تم استقبال حدث dataChanged. جاري مزامنة كل البيانات مع الخادم...");
+
+        // الخطوة أ: قم بحفظ قائمة التسوق المحدثة
+        this._saveShoppingData();
+
+        // الخطوة ب: قم بحفظ الفئات المحدثة
+        this._saveCategories();
+
+        // الخطوة ج: قم بتحديث العرض على الشاشة
+        this.render();
+    });
+}
 
     // --- هنا التعديل الرئيسي لمنع التكرار الشامل ---
     _itemExistsInAnyCategory(itemName) {
