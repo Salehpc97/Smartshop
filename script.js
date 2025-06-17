@@ -1,4 +1,4 @@
-// في script.js
+// امسح كل محتوى script.js وضع هذا الكود
 
 const { useState, useEffect } = React;
 
@@ -7,80 +7,90 @@ function SmartShopApp() {
   const [shoppingData, setShoppingData] = useState({});
   const [categories, setCategories] = useState({});
   const [inputValue, setInputValue] = useState('');
-  const [userId, setUserId] = useState('bcdd1361-a8dc-4feb-88aa-48d3d2724b5a'); // معرف المستخدم التجريبي
+  const [userId, setUserId] = useState('bcdd1361-a8dc-4feb-88aa-48d3d2724b5a');
+  const [errorMessage, setErrorMessage] = useState('');
 
-  // 2. useEffect لجلب البيانات الأولية
+  // 2. جلب البيانات الأولية
   useEffect(() => {
-    // نعرّف دالة غير متزامنة لجلب البيانات
     async function fetchInitialData() {
-      console.log("جاري جلب البيانات الأولية للمستخدم:", userId);
       try {
-        // جلب قائمة التسوق الحالية
-        const listResponse = await fetch(`/api/getList?userId=${userId}`);
-        const listResult = await listResponse.json();
-        if (listResult.data) {
-          setShoppingData(listResult.data);
-        }
+        const [listResponse, categoriesResponse] = await Promise.all([
+          fetch(`/api/getList?userId=${userId}`),
+          fetch(`/api/getCategories?userId=${userId}`)
+        ]);
 
-        // جلب قائمة الفئات
-        const categoriesResponse = await fetch(`/api/getCategories?userId=${userId}`);
+        const listResult = await listResponse.json();
         const categoriesResult = await categoriesResponse.json();
-        if (categoriesResult.data) {
-          setCategories(categoriesResult.data);
-        }
-        
-        console.log("تم جلب البيانات بنجاح!");
+
+        if (listResult.data) setShoppingData(listResult.data);
+        if (categoriesResult.data) setCategories(categoriesResult.data);
 
       } catch (error) {
         console.error("فشل جلب البيانات الأولية:", error);
+        setErrorMessage("فشل تحميل البيانات من الخادم.");
       }
     }
-
-    // استدعاء الدالة
     fetchInitialData();
-  }, [userId]); // يتم تشغيل هذا التأثير مرة واحدة، أو إذا تغير userId
+  }, [userId]);
 
-  // 3. دالة لإضافة عنصر جديد (سنتحدث مع الخادم هنا)
+  // 3. إعادة بناء المنطق الذكي لتحديد الفئة
+  function getCategoryForItem(itemName) {
+    for (const category in categories) {
+      if (categories[category].includes(itemName)) {
+        return { category, matchedItem: itemName };
+      }
+    }
+    return { category: null, matchedItem: null }; // لم يتم العثور على العنصر
+  }
+
+  // 4. دالة إضافة ذكية ومحسّنة
   async function handleAddItem() {
+    setErrorMessage(''); // إخفاء أي خطأ قديم
     if (inputValue.trim() === '') return;
 
-    // هذا مجرد مثال بسيط الآن للتعامل مع الفئات
-    const category = 'أخرى'; 
-    const newItem = { name: inputValue, category: category };
+    const { category, matchedItem } = getCategoryForItem(inputValue);
+
+    if (!matchedItem) {
+      setErrorMessage(`العنصر "${inputValue}" غير معروف. حاول إضافته كعنصر مخصص.`);
+      return;
+    }
+
+    // التحقق من أن العنصر ليس مكررًا في قائمة التسوق الحالية
+    if (shoppingData[category] && shoppingData[category].some(item => item.name === matchedItem)) {
+        setErrorMessage(`"${matchedItem}" موجود بالفعل في قائمتك.`);
+        return;
+    }
+
+    const newItem = { name: matchedItem, category: category };
 
     // تحديث متفائل للواجهة
     const newShoppingData = { ...shoppingData };
     if (!newShoppingData[category]) {
       newShoppingData[category] = [];
     }
-    newShoppingData[category].push(newItem.name);
+    newShoppingData[category].push(newItem);
     setShoppingData(newShoppingData);
     setInputValue('');
     
-    // الآن، قم بحفظ العنصر الجديد في قاعدة البيانات
+    // حفظ العنصر في قاعدة البيانات
     try {
-        console.log("جاري حفظ العنصر الجديد في الخادم...");
         await fetch('/api/addItem', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ item: newItem, userId: userId })
         });
-        console.log("تم حفظ العنصر بنجاح في الخادم.");
     } catch(error) {
-        console.error("فشل حفظ العنصر في الخادم:", error);
-        // يمكنك هنا إضافة منطق للتراجع عن التحديث المتفائل إذا فشل الحفظ
+        console.error("فشل حفظ العنصر:", error);
+        setErrorMessage("فشل حفظ العنصر في الخادم. حاول مرة أخرى.");
+        // يمكنك هنا إضافة منطق للتراجع عن التحديث المتفائل
     }
   }
 
-  function handleClearAll() {
-    // في المستقبل، يجب أن تتحدث هذه الدالة أيضًا مع الخادم
-    setShoppingData({});
-  }
+  // ... يمكنك إضافة بقية الدوال مثل handleClearAll هنا ...
 
-  // 4. وصف الواجهة (لم يتغير)
+  // 5. وصف الواجهة (مع تعديل بسيط لعرض رسالة الخطأ)
   return (
     <div>
-      {/* ... كل كود JSX هنا يبقى كما هو ... */}
       <h1>SmartShope app</h1>
       
       <div className="ManiScrean">
@@ -90,11 +100,11 @@ function SmartShopApp() {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
         />
-        <div className="error-message"></div>
+        {/* عرض رسالة الخطأ فقط إذا كانت موجودة */}
+        {errorMessage && <div className="error-message">{errorMessage}</div>}
         
         <button onClick={handleAddItem}>إضافة</button>
-        <button onClick={handleClearAll}>مسح الكل</button>
-        <button>➕ إضافة عنصر جديد</button>
+        {/* ... بقية الأزرار ... */}
       </div>
       
       <div id="categories">
@@ -103,7 +113,7 @@ function SmartShopApp() {
             <h3>{category}</h3>
             <ul>
               {shoppingData[category].map((item, index) => (
-                <li key={index}>{item.name || item}</li> // التعامل مع كلا الهيكلين
+                <li key={index}>{item.name}</li>
               ))}
             </ul>
           </div>
@@ -113,7 +123,7 @@ function SmartShopApp() {
   );
 }
 
-// 5. ربط React بالـ DOM (لم يتغير)
+// 6. ربط React بالـ DOM (لم يتغير)
 const container = document.getElementById('root');
 const root = ReactDOM.createRoot(container);
 root.render(<SmartShopApp />);
