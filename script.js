@@ -1,72 +1,96 @@
-// امسح كل محتوى script.js وضع هذا الكود
+// في script.js
 
-// استيراد "الخطافات" (Hooks) التي سنحتاجها من React
 const { useState, useEffect } = React;
 
-// هذا هو المكون الرئيسي الذي يحتوي على كل شيء
 function SmartShopApp() {
-  // 1. إدارة الحالة: هنا نعلن عن كل البيانات التي ستتغير
-  const [shoppingData, setShoppingData] = useState({}); // لتخزين قائمة التسوق
-  const [categories, setCategories] = useState({});     // لتخزين قائمة الفئات الرئيسية
-  const [inputValue, setInputValue] = useState('');     // لتخزين قيمة حقل الإدخال
-  const [errorMessage, setErrorMessage] = useState(''); // لتخزين رسائل الخطأ
+  // 1. إدارة الحالة
+  const [shoppingData, setShoppingData] = useState({});
+  const [categories, setCategories] = useState({});
+  const [inputValue, setInputValue] = useState('');
+  const [userId, setUserId] = useState('bcdd1361-a8dc-4feb-88aa-48d3d2724b5a'); // معرف المستخدم التجريبي
 
-  // 2. جلب البيانات الأولية (بديل لـ _initializeData)
-  // useEffect هو "خطاف" يتم تشغيله بعد رسم المكون
+  // 2. useEffect لجلب البيانات الأولية
   useEffect(() => {
-    // هذه الدالة سيتم تشغيلها مرة واحدة فقط عند بدء تشغيل التطبيق
+    // نعرّف دالة غير متزامنة لجلب البيانات
     async function fetchInitialData() {
-      // يمكنك هنا وضع الكود الذي يجلب البيانات من الخادم
-      // fetch(`/api/getList?userId=...`)
-      // fetch(`/api/getCategories?userId=...`)
-      console.log("التطبيق جاهز، يمكننا جلب البيانات الأولية هنا.");
-      // كمثال، سنستخدم البيانات الافتراضية الآن
-      setCategories({
-          'فواكه': ['تفاح', 'موز', 'برتقال'],
-          'خضروات': ['جزر', 'خيار', 'طماطم'],
-          'أخرى': []
-      });
-    }
-    fetchInitialData();
-  }, []); // المصفوفة الفارغة تعني "شغّل هذا مرة واحدة فقط عند البداية"
+      console.log("جاري جلب البيانات الأولية للمستخدم:", userId);
+      try {
+        // جلب قائمة التسوق الحالية
+        const listResponse = await fetch(`/api/getList?userId=${userId}`);
+        const listResult = await listResponse.json();
+        if (listResult.data) {
+          setShoppingData(listResult.data);
+        }
 
-  // 3. دوال لمعالجة الأحداث
-  function handleAddItem() {
+        // جلب قائمة الفئات
+        const categoriesResponse = await fetch(`/api/getCategories?userId=${userId}`);
+        const categoriesResult = await categoriesResponse.json();
+        if (categoriesResult.data) {
+          setCategories(categoriesResult.data);
+        }
+        
+        console.log("تم جلب البيانات بنجاح!");
+
+      } catch (error) {
+        console.error("فشل جلب البيانات الأولية:", error);
+      }
+    }
+
+    // استدعاء الدالة
+    fetchInitialData();
+  }, [userId]); // يتم تشغيل هذا التأثير مرة واحدة، أو إذا تغير userId
+
+  // 3. دالة لإضافة عنصر جديد (سنتحدث مع الخادم هنا)
+  async function handleAddItem() {
     if (inputValue.trim() === '') return;
-    
-    // هذا مجرد مثال بسيط الآن، سنضيف المنطق المعقد لاحقًا
-    const category = 'أخرى'; // مثال بسيط
-    
-    // الطريقة الصحيحة لتحديث الحالة في React (إنشاء نسخة جديدة)
+
+    // هذا مجرد مثال بسيط الآن للتعامل مع الفئات
+    const category = 'أخرى'; 
+    const newItem = { name: inputValue, category: category };
+
+    // تحديث متفائل للواجهة
     const newShoppingData = { ...shoppingData };
     if (!newShoppingData[category]) {
       newShoppingData[category] = [];
     }
-    newShoppingData[category].push(inputValue);
+    newShoppingData[category].push(newItem.name);
+    setShoppingData(newShoppingData);
+    setInputValue('');
     
-    setShoppingData(newShoppingData); // تحديث الحالة، React ستعيد الرسم تلقائيًا
-    setInputValue(''); // إفراغ حقل الإدخال
-    setErrorMessage(''); // مسح أي رسالة خطأ سابقة
+    // الآن، قم بحفظ العنصر الجديد في قاعدة البيانات
+    try {
+        console.log("جاري حفظ العنصر الجديد في الخادم...");
+        await fetch('/api/addItem', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ item: newItem, userId: userId })
+        });
+        console.log("تم حفظ العنصر بنجاح في الخادم.");
+    } catch(error) {
+        console.error("فشل حفظ العنصر في الخادم:", error);
+        // يمكنك هنا إضافة منطق للتراجع عن التحديث المتفائل إذا فشل الحفظ
+    }
   }
 
   function handleClearAll() {
-    setShoppingData({}); // ببساطة قم بتفريغ الحالة
+    // في المستقبل، يجب أن تتحدث هذه الدالة أيضًا مع الخادم
+    setShoppingData({});
   }
 
-  // 4. وصف الواجهة باستخدام JSX (ترجمة لملف HTML القديم)
+  // 4. وصف الواجهة (لم يتغير)
   return (
     <div>
+      {/* ... كل كود JSX هنا يبقى كما هو ... */}
       <h1>SmartShope app</h1>
       
-      <div className="ManiScrean"> {/* ملاحظة: class تصبح className في JSX */}
+      <div className="ManiScrean">
         <input 
           type="text" 
-          id="itemInput" 
           placeholder="أدخل عنصرًا..."
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
         />
-        <div className="error-message">{errorMessage}</div>
+        <div className="error-message"></div>
         
         <button onClick={handleAddItem}>إضافة</button>
         <button onClick={handleClearAll}>مسح الكل</button>
@@ -79,7 +103,7 @@ function SmartShopApp() {
             <h3>{category}</h3>
             <ul>
               {shoppingData[category].map((item, index) => (
-                <li key={index}>{item}</li>
+                <li key={index}>{item.name || item}</li> // التعامل مع كلا الهيكلين
               ))}
             </ul>
           </div>
@@ -89,7 +113,7 @@ function SmartShopApp() {
   );
 }
 
-// 5. ربط تطبيق React بنقطة الدخول في HTML
+// 5. ربط React بالـ DOM (لم يتغير)
 const container = document.getElementById('root');
 const root = ReactDOM.createRoot(container);
 root.render(<SmartShopApp />);
