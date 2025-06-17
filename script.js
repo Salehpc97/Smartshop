@@ -157,34 +157,6 @@ _subscribeToEvents() {
         return null;
     }
 
-// النسخة النهائية لدالة _addCustomItem
-async _addCustomItem() {
-    // ... الكود الخاص بالتحقق من المدخلات ...
-
-    try {
-        const response = await fetch('/api/addCustomItem', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ /* ... */ })
-        });
-
-        // === نفس الجزء الذكي هنا ===
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'فشل الحفظ في الخادم');
-        }
-        // =========================
-        
-        alert(`تمت إضافة '${itemName}' بنجاح!`);
-        document.querySelector('.custom-modal').remove();
-
-    } catch (error) {
-        console.error("خطأ في إضافة العنصر المخصص:", error.message);
-        alert(`خطأ: ${error.message}`);
-        // لا نحتاج لإعادة المزامنة هنا لأن الواجهة لم تتغير بعد
-    }
-}
-
     /*_saveCategories() {
         localStorage.setItem('categories', JSON.stringify(this.categories));
     }
@@ -295,28 +267,62 @@ async _saveCategories() {
     }
 
 // النسخة النهائية والمحسّنة لدالة addItem
-async addItem() {
-    this._hideError(); // أهم خطوة: إخفاء أي خطأ قديم عند البدء
+// في script.js: استبدل دالة addItem الحالية بهذه النسخة المصححة
+addItem() {
+    this._hideError(); // إخفاء أي خطأ قديم
     const userInput = this.itemInput.value.trim();
-    // ...
-    
-    try {
-        const response = await fetch('/api/addItem', { /* ... */ });
+    if (userInput === '') return;
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'فشل الحفظ');
+    const { category, matchedItem } = this._getCategory(userInput);
+
+    if (matchedItem) {
+        // التحقق الذكي: هل العنصر موجود بالفعل في قائمة التسوق الحالية؟
+        if (this.shoppingData[category] && this.shoppingData[category].includes(matchedItem)) {
+            this._showError(`"${matchedItem}" موجود بالفعل في قائمتك.`);
+            return; // أوقف العملية هنا
         }
-        // إذا نجح، قم بتحديث الواجهة
-        this.shoppingData[category].push(matchedItem);
-        this.render();
 
-    } catch (error) {
-        console.error("خطأ في إضافة العنصر:", error.message);
-        this._showError(error.message); // عرض الخطأ في المكان المخصص
+        // إذا لم يكن مكررًا، قم بإضافته وأطلق الإشارة
+        this.shoppingData[category] = this.shoppingData[category] || [];
+        this.shoppingData[category].push(matchedItem);
+        this.eventBus.emit('dataChanged'); // استخدم النظام الحالي للحفظ والمزامنة
+
+    } else {
+        // إذا كان العنصر غير موجود على الإطلاق، اقترح إضافته كعنصر مخصص
+        this._showError("عنصر غير معروف. حاول إضافته عبر 'إضافة عنصر مخصص'.");
     }
-    // ...
+
+    this.itemInput.value = '';
+    this.suggestionsContainer.innerHTML = '';
+    this.itemInput.focus();
 }
+
+// في script.js: استبدل دالة _addCustomItem الحالية بهذه النسخة المصححة
+_addCustomItem() {
+    this._hideError();
+    const itemName = document.getElementById('newItemName').value.trim();
+    const selectedCategory = document.getElementById('categorySelect').value;
+    if (!itemName) return alert('الرجاء إدخال اسم العنصر');
+
+    // الجدار الأول: التحقق من وجود العنصر في قائمة الفئات الرئيسية
+    const existingCategory = this._itemExistsInAnyCategory(itemName);
+    if (existingCategory) {
+        return alert(`هذا العنصر موجود بالفعل في فئة "${existingCategory}"!`);
+    }
+
+    // تحديث البيانات محليًا أولاً
+    this.categories[selectedCategory].push(itemName);
+    this.allItemsForAutocomplete.push(itemName);
+    this.shoppingData[selectedCategory] = this.shoppingData[selectedCategory] || [];
+    this.shoppingData[selectedCategory].push(itemName);
+
+    // إطلاق الإشارة لمركز القيادة ليتولى الحفظ
+    this.eventBus.emit('dataChanged');
+    
+    alert(`تمت إضافة '${itemName}' إلى فئة '${selectedCategory}' بنجاح!`);
+    document.querySelector('.custom-modal').remove();
+}
+
 
     clearAllItems() {
         this.shoppingData = { 'فواكه': [], 'خضروات': [], 'معلبات':[], 'أخرى': [] };
