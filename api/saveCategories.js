@@ -7,38 +7,45 @@ const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 module.exports = async (req, res) => {
-    // === جهاز التنصت الذي زرعناه ===
-    console.log("تم استدعاء saveCategories. جسم الطلب (req.body):", req.body);
-    // ==================================
-
     if (req.method !== 'POST') {
         return res.status(405).json({ message: 'Method Not Allowed' });
     }
 
     try {
-        const { categories, userId } = req.body;
+        const { shoppingList, userId } = req.body;
 
-        // إضافة تحقق إضافي للتأكد من وجود البيانات
-        if (!categories || !userId) {
-            console.log("بيانات ناقصة في الطلب. لن يتم الحفظ.");
-            return res.status(400).json({ message: 'بيانات ناقصة: الفئات أو معرف المستخدم مفقود.' });
+        // الخطوة أ: حذف جميع العناصر القديمة لهذا المستخدم
+        await supabase.from('ShoppingListItems').delete().eq('user_id', userId);
+
+        // الخطوة ب (التحويل الذكي): تحويل الكائن إلى مصفوفة قابلة للحفظ
+        const itemsToInsert = [];
+        for (const category in shoppingList) {
+            if (shoppingList.hasOwnProperty(category)) {
+                shoppingList[category].forEach(itemName => {
+                    itemsToInsert.push({
+                        item_name: itemName,
+                        category: category,
+                        user_id: userId
+                    });
+                });
+            }
         }
 
-        const { error } = await supabase
-            .from('UserCategories')
-            .upsert({ user_id: userId, categories_data: categories }, { onConflict: 'user_id' });
+        // الخطوة ج: إذا كانت هناك عناصر جديدة، قم بإضافتها
+        if (itemsToInsert.length > 0) {
+            const { error: insertError } = await supabase
+                .from('ShoppingListItems')
+                .insert(itemsToInsert);
 
-        if (error) {
-            // إذا حدث خطأ في قاعدة البيانات، قم بتسجيله وإرساله
-            console.error("خطأ من Supabase:", error);
-            throw error;
+            if (insertError) throw insertError;
         }
-        
-        console.log("تم الحفظ بنجاح للمستخدم:", userId);
-        res.status(200).json({ message: 'تم تحديث الفئات بنجاح!' });
+
+        res.status(200).json({ message: 'تم تحديث قائمة التسوق بنجاح!' });
 
     } catch (error) {
-        console.error('خطأ في حفظ الفئات:', error);
+        console.error('خطأ في حفظ قائمة التسوق:', error);
         res.status(500).json({ message: 'حدث خطأ في الخادم', error: error.message });
     }
 };
+
+
