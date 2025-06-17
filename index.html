@@ -6,34 +6,22 @@
     <title>Smart Shop app</title>
     <link rel="stylesheet" href="style.css">
 
-     <!-- 1. مكتبة React الأساسية -->
-     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-     <!-- 2. مكتبة ReactDOM لربط React بالـ DOM -->
-     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-     <!-- 3. مكتبة Babel لتحويل JSX في المتصفح مباشرة -->
-     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
- 
-     <!-- استدعاء ملف الجافا سكريبت الخاص بك بعد مكتبات React -->
-     <script type="text/babel" src="script.js"></script>
+    
      
 </head>
 <body>
-    <h1>SmartShope app</h1>
-    <div class="ManiScrean">
-        <input type="text" id="itemInput" placeholder="أدخل عنصرًا (مثال: تفاح)">
-        <div id="error-message-container" class="error-message"></div>
+  <!-- هذا هو "المسرح" الفارغ الذي ستعمل عليه React -->
+  <div id="root"></div>
 
-        <div id="suggestions-container"></div>
-        <button id="addItem">إضافة</button>
-        <button id="clearAll">مسح الكل</button>
-        <!-- أضف هذا الزر تحت الأزرار الموجودة -->
-<button id="addCustomItem">➕ إضافة عنصر جديد</button>
+   <!-- 1. مكتبة React الأساسية -->
+   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+   <!-- 2. مكتبة ReactDOM لربط React بالـ DOM -->
+   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+   <!-- 3. مكتبة Babel لتحويل JSX في المتصفح مباشرة -->
+   <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 
-    </div>
- 
- <div id="categories">
-    <!-- الفئات ستظهر هنا -->
- </div>
-
+   <!-- استدعاء ملف الجافا سكريبت الخاص بك بعد مكتبات React -->
+   <script type="text/babel" src="script.js"></script>
+   
 </body>
 </html>
