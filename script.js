@@ -51,13 +51,28 @@ class SmartShoppingApp {
     }
 
     _getDomElements() {
+
         this.itemInput = document.getElementById('itemInput');
         this.addItemBtn = document.getElementById('addItem');
+        this.errorMessageContainer = document.getElementById('error-message-container');
+
         this.clearAllBtn = document.getElementById('clearAll');
         this.categoriesList = document.getElementById('categories');
         this.suggestionsContainer = document.getElementById('suggestions-container');
         this.addCustomItemBtn = document.getElementById('addCustomItem');
     }
+
+    // دالة لعرض رسالة الخطأ
+_showError(message) {
+    this.errorMessageContainer.textContent = message;
+    this.errorMessageContainer.classList.add('visible');
+}
+
+// دالة لإخفاء رسالة الخطأ
+_hideError() {
+    this.errorMessageContainer.classList.remove('visible');
+}
+
 // الدالة قبل التعديل ---
     /*_initializeData() {
         const savedCategories = localStorage.getItem('categories');
@@ -279,32 +294,28 @@ async _saveCategories() {
         });
     }
 
-  // في script.js (النسخة النهائية لدالة addItem)
-// النسخة النهائية لدالة addItem
-async addItem(itemName) {
-    // ... الكود الخاص بالتحقق من الإدخال ...
-
-    // ... تحديث الواجهة فورًا ...
-
+// النسخة النهائية والمحسّنة لدالة addItem
+async addItem() {
+    this._hideError(); // أهم خطوة: إخفاء أي خطأ قديم عند البدء
+    const userInput = this.itemInput.value.trim();
+    // ...
+    
     try {
-        const response = await fetch('/api/addItem', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ /* ... */ })
-        });
+        const response = await fetch('/api/addItem', { /* ... */ });
 
-        // === هذا هو الجزء الذكي ===
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.message || 'فشل الحفظ في الخادم');
+            throw new Error(errorData.message || 'فشل الحفظ');
         }
-        // =========================
+        // إذا نجح، قم بتحديث الواجهة
+        this.shoppingData[category].push(matchedItem);
+        this.render();
 
     } catch (error) {
         console.error("خطأ في إضافة العنصر:", error.message);
-        alert(`خطأ: ${error.message}`); // عرض رسالة الخطأ الواضحة للمستخدم
-        this._initializeData(); // إعادة مزامنة الواجهة مع قاعدة البيانات لإزالة العنصر الذي تمت إضافته بشكل خاطئ
+        this._showError(error.message); // عرض الخطأ في المكان المخصص
     }
+    // ...
 }
 
     clearAllItems() {

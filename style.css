@@ -191,3 +191,20 @@ button:hover {
     cursor: pointer;
     font-size: 24px;
 }
+
+.error-message {
+    color: #e74c3c; /* لون أحمر جذاب للأخطاء */
+    font-size: 14px; /* حجم خط أصغر قليلاً */
+    margin-top: 8px; /* مسافة صغيرة من الأعلى */
+    height: 16px; /* ارتفاع ثابت لمنع اهتزاز الواجهة */
+    text-align: right; /* محاذاة النص إلى اليمين */
+    visibility: hidden; /* إخفاء الرسالة بشكل افتراضي */
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out; /* تأثير ظهور سلس */
+  }
+  
+  .error-message.visible {
+    visibility: visible; /* إظهار الرسالة */
+    opacity: 1;
+  }
+  
