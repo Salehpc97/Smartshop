@@ -1,7 +1,36 @@
+
+// هذا هو مكون React الجديد
+// إنه يأخذ "الخصائص" (props) ويعيد واجهة مستخدم
+function ShoppingListComponent(props) {
+    const shoppingData = props.shoppingData;
+  
+    // إذا كانت البيانات فارغة، اعرض رسالة
+    if (Object.keys(shoppingData).length === 0) {
+      return <p>قائمة التسوق فارغة.</p>;
+    }
+  
+    // إذا كانت هناك بيانات، قم برسمها باستخدام JSX
+    return (
+      <div>
+        {Object.keys(shoppingData).map(category => (
+          <div key={category} className="category-section">
+            <h3>{category}</h3>
+            <ul>
+              {shoppingData[category].map(item => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  
 // --- الخطوة 1: إنشاء "ناقل الأحداث" أو "محطة الراديو" (EventBus) ---
 // هذه الفئة البسيطة هي قلب نظامنا الحدثي.
 // مهمتها هي تسجيل "المستمعين" وإعلامهم عند وقوع حدث.
 // --- البيانات الافتراضية الأساسية (توضع خارج الفئة لتكون ثابتة) ---
+
 const DEFAULT_CATEGORIES = {
     'فواكه': ['تفاح', 'موز', 'برتقال', 'يوسفي', 'ليمون', 'عنب', 'كمثرى', 'دراق', 'خوخ', 'مشمش', 'تين', 'رمان', 'بطيخ', 'شمام', 'كيوي', 'أناناس', 'مانجو', 'جوافة', 'فراولة', 'توت', 'كرز', 'جريب فروت', 'بابايا', 'تمر', 'بلح', 'جوز الهند', 'رطب', 'افوكادو', 'برقوق'],
     'خضروات': ['جزر', 'خيار', 'طماطم', 'بطاطس', 'بصل', 'ثوم', 'فلفل', 'فلفل رومي', 'فلفل حار', 'خس', 'سبانخ', 'ملفوف', 'قرنبيط', 'بروكلي', 'كوسا', 'باذنجان', 'فجل', 'شمندر', 'كرنب', 'كرفس', 'بقدونس', 'كزبرة', 'شبت', 'نعناع', 'جرجير', 'فاصوليا', 'لوبيا', 'بازلاء', 'ذرة', 'فول', 'عدس', 'بطاطا حلوة', 'يقطين', 'قرع', 'كوسة', 'ورق عنب'],
@@ -230,14 +259,17 @@ async _saveCategories() {
     }
     
     render() {
-        this.categoriesList.innerHTML = '';
-        for (const [category, items] of Object.entries(this.shoppingData)) {
-            if (items.length === 0) continue;
-            const section = this._createCategorySection(category, items);
-            this.categoriesList.appendChild(section);
-        }
-    }
-
+        // ابحث عن الحاوية في الـ DOM
+        const domContainer = document.querySelector('#categories-list');
+        
+        // اطلب من ReactDOM أن يقوم برسم مكون React الخاص بك داخل هذه الحاوية
+        // ومرر له البيانات الحالية كـ "خاصية" (prop)
+        ReactDOM.render(
+          React.createElement(ShoppingListComponent, { shoppingData: this.shoppingData }), 
+          domContainer
+        );
+      }
+      
     _showCustomItemModal() {
         const modal = document.createElement('div');
         modal.className = 'custom-modal';
