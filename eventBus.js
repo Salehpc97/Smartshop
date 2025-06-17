@@ -1,15 +1,23 @@
 
 
+// /js/eventBus.js
 class EventBus {
-    constructor() { this.listeners = {};
-  }
-    on(eventName, callback) {
-        if (!this.listeners[eventName]) this.listeners[eventName] = [];
-        this.listeners[eventName].push(callback);
+    constructor() {
+      this.events = {};
     }
-    emit(eventName) {
-        if (this.listeners[eventName]) {
-            this.listeners[eventName].forEach(callback => callback());
-        }
+    on(event, listener) {
+      if (!this.events[event]) {
+        this.events[event] = [];
+      }
+      this.events[event].push(listener);
+    }
+    emit(event, data) {
+      if (this.events[event]) {
+        this.events[event].forEach(listener => listener(data));
+      }
     }
   }
+  
+  // السطر الجديد والمهم: قم بإنشاء نسخة واحدة وقم بتصديرها كافتراضي
+  export default new EventBus();
+  
