@@ -42,55 +42,72 @@ class App {
     return { category: 'أخرى', matchedItem: itemName.trim() };
   }
 
-  // --- هنا قمنا بملء "دليل التعليمات" للمدير ---
-  _subscribeToEvents() {
+  // --- هنا قمنا بإعادة بناء "العقل" الذكي للتطبيق ---
+  
+_subscribeToEvents() {
+    // 1. التعامل مع إضافة عنصر
     eventBus.on('ui:addItem', async (itemName) => {
-      this.ui.hideError();
-      if (!itemName) return;
+        this.ui.hideError();
+        if (!itemName) return;
+        const { category, matchedItem } = this._getCategory(itemName);
 
-      const { category, matchedItem } = this._getCategory(itemName);
+        if (category === 'أخرى' || !matchedItem) {
+            this.ui.showError(`العنصر "${itemName}" غير معروف.`);
+            return;
+        }
+        if (this.shoppingData[category] && this.shoppingData[category].some(item => (item.name || item) === matchedItem)) {
+            this.ui.showError(`"${matchedItem}" موجود بالفعل في قائمتك.`);
+            return;
+        }
 
-      if (category === 'أخرى') {
-        this.ui.showError(`العنصر "${itemName}" غير معروف. حاول إضافته كعنصر مخصص.`);
-        return;
-      }
-      
-      if (this.shoppingData[category] && this.shoppingData[category].some(item => (item.name || item) === matchedItem)) {
-        this.ui.showError(`"${matchedItem}" موجود بالفعل في قائمتك.`);
-        return;
-      }
+        this.shoppingData[category] = this.shoppingData[category] || [];
+        this.shoppingData[category].push({ name: matchedItem, category });
+        this.ui.render(this.shoppingData);
+        this.ui.clearInput();
 
-      // تحديث البيانات المحلية
-      this.shoppingData[category] = this.shoppingData[category] || [];
-      this.shoppingData[category].push({ name: matchedItem, category });
-
-      // إعادة رسم الواجهة فورًا (تجربة مستخدم أفضل)
-      this.ui.render(this.shoppingData);
-      this.ui.clearInput();
-
-      // محاولة الحفظ في الخادم في الخلفية
-      try {
-        await this.api.saveShoppingList(this.shoppingData);
-      } catch (error) {
-        console.error("Save failed:", error);
-        this.ui.showError("فشل حفظ التغييرات في الخادم.");
-        // يمكنك هنا إضافة منطق للتراجع عن التغيير إذا فشل الحفظ
-      }
+        try {
+            await this.api.saveShoppingList(this.shoppingData);
+        } catch (error) {
+            this.ui.showError("فشل حفظ التغييرات.");
+        }
     });
 
-    eventBus.on('ui:clearAll', async () => {
-      this.shoppingData = {};
-      this.ui.render(this.shoppingData);
-      try {
-        await this.api.saveShoppingList(this.shoppingData);
-      } catch (error) {
-        console.error("Clear failed:", error);
-        this.ui.showError("فشل مسح القائمة في الخادم.");
-      }
+    // 2. التعامل مع حذف عنصر (المنطق الجديد)
+    eventBus.on('ui:deleteItem', async ({ name, category }) => {
+        if (this.shoppingData[category]) {
+            this.shoppingData[category] = this.shoppingData[category].filter(item => (item.name || item) !== name);
+            if (this.shoppingData[category].length === 0) {
+                delete this.shoppingData[category];
+            }
+            this.ui.render(this.shoppingData);
+
+            try {
+                await this.api.saveShoppingList(this.shoppingData);
+            } catch (error) {
+                this.ui.showError("فشل حفظ الحذف.");
+            }
+        }
     });
     
-    // يمكنك إضافة مستمع لـ ui:showCustomModal هنا بنفس الطريقة
-  }
+    // 3. التعامل مع مسح الكل
+    eventBus.on('ui:clearAll', async () => {
+        this.shoppingData = {};
+        this.ui.render(this.shoppingData);
+        try {
+            await this.api.saveShoppingList(this.shoppingData);
+        } catch (error) {
+            this.ui.showError("فشل مسح القائمة.");
+        }
+    });
+    
+    // 4. التعامل مع إظهار النافذة المنبثقة (المنطق الجديد)
+    eventBus.on('ui:showCustomModal', () => {
+        this.ui.showCustomItemModal(this.categories);
+    });
+
+    // 5. يمكنك إضافة مستمع هنا للتعامل مع "تأكيد الإضافة" من النافذة المنبثقة
+}
+
 }
 
 new App(); // بدء تشغيل التطبيق
