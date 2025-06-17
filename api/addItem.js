@@ -12,6 +12,20 @@ module.exports = async (req, res) => {
             user_id: userId
         });
         res.status(200).json({ message: 'Item added successfully' });
-    } catch (error) { res.status(500).json({ message: error.message }); }
+   // هذا الكود يوضع بدل كتلة catch الحالية في كلا الملفين: addItem.js و addCustomItem.js
+} catch (error) {
+    console.error('API Error:', error);
+
+    // === هذا هو الجزء الذكي ===
+    // إذا كان الخطأ هو خطأ تكرار من قاعدة البيانات
+    if (error.code === '23505') { 
+        return res.status(409).json({ message: 'هذا العنصر موجود بالفعل في القائمة.' });
+    }
+    // =========================
+
+    // لأي خطأ آخر، أرسل خطأ خادم عام
+    res.status(500).json({ message: 'حدث خطأ في الخادم', error: error.message });
+}
+
 };
 

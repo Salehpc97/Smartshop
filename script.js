@@ -40,6 +40,15 @@ class SmartShoppingApp {
         this.eventBus = new EventBus();
         this._subscribeToEvents();
     }
+    
+    _itemExistsInAnyCategory(itemName) {
+        for (const category in this.categories) {
+            if (this.categories[category].includes(itemName)) {
+                return category; // أعد اسم الفئة التي يوجد بها العنصر
+            }
+        }
+        return null; // العنصر غير موجود
+    }
 
     _getDomElements() {
         this.itemInput = document.getElementById('itemInput');
@@ -132,37 +141,34 @@ _subscribeToEvents() {
         }
         return null;
     }
-// في script.js
-async _addCustomItem() {
-    const itemName = document.getElementById('newItemName').value.trim();
-    const selectedCategory = document.getElementById('categorySelect').value;
-    if (!itemName) return alert('الرجاء إدخال اسم العنصر');
-    
-    // ... الكود الخاص بالتحقق من وجود العنصر ...
 
-    this.categories[selectedCategory].push(itemName);
-    this.allItemsForAutocomplete.push(itemName);
-    this.shoppingData[selectedCategory] = this.shoppingData[selectedCategory] || [];
-    this.shoppingData[selectedCategory].push(itemName);
-    this.render();
-    
+// النسخة النهائية لدالة _addCustomItem
+async _addCustomItem() {
+    // ... الكود الخاص بالتحقق من المدخلات ...
+
     try {
-        await fetch('/api/addCustomItem', {
+        const response = await fetch('/api/addCustomItem', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                item: { name: itemName, category: selectedCategory },
-                userId: this.userId,
-                allCategories: this.categories // إرسال قائمة الفئات المحدثة
-            })
+            body: JSON.stringify({ /* ... */ })
         });
-    } catch (error) { console.error("Failed to add custom item:", error); }
-    
-    alert(`تمت إضافة '${itemName}' بنجاح!`);
-    document.querySelector('.custom-modal').remove();
+
+        // === نفس الجزء الذكي هنا ===
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'فشل الحفظ في الخادم');
+        }
+        // =========================
+        
+        alert(`تمت إضافة '${itemName}' بنجاح!`);
+        document.querySelector('.custom-modal').remove();
+
+    } catch (error) {
+        console.error("خطأ في إضافة العنصر المخصص:", error.message);
+        alert(`خطأ: ${error.message}`);
+        // لا نحتاج لإعادة المزامنة هنا لأن الواجهة لم تتغير بعد
+    }
 }
-
-
 
     /*_saveCategories() {
         localStorage.setItem('categories', JSON.stringify(this.categories));
@@ -272,44 +278,34 @@ async _saveCategories() {
             this._addCustomItem();
         });
     }
-    
-    // --- بقية الدوال تبقى كما هي ---
+
   // في script.js (النسخة النهائية لدالة addItem)
-async addItem() {
-    const userInput = this.itemInput.value.trim();
-    if (userInput === '') return;
+// النسخة النهائية لدالة addItem
+async addItem(itemName) {
+    // ... الكود الخاص بالتحقق من الإدخال ...
 
-    const { category, matchedItem } = this._getCategory(userInput);
+    // ... تحديث الواجهة فورًا ...
 
-    if (matchedItem) {
-        // التأكد من عدم وجود العنصر قبل إضافته
-        if (!this.shoppingData[category].some(item => item === matchedItem)) {
-            // 1. تحديث الواجهة فورًا لشعور المستخدم بالسرعة
-            this.shoppingData[category].push(matchedItem);
-            this.render(); // تحديث العرض فورًا
-            
-            // 2. إرسال العنصر الجديد فقط إلى الخادم في الخلفية
-            try {
-                await fetch('/api/addItem', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        item: { name: matchedItem, category: category },
-                        userId: this.userId
-                    })
-                });
-            } catch (error) {
-                console.error("Failed to add item on server:", error);
-                // هنا يمكنك عرض رسالة خطأ للمستخدم إذا فشل الحفظ
-            }
+    try {
+        const response = await fetch('/api/addItem', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ /* ... */ })
+        });
+
+        // === هذا هو الجزء الذكي ===
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'فشل الحفظ في الخادم');
         }
-    }
-    
-    this.itemInput.value = '';
-    this.suggestionsContainer.innerHTML = '';
-    this.itemInput.focus();
-}
+        // =========================
 
+    } catch (error) {
+        console.error("خطأ في إضافة العنصر:", error.message);
+        alert(`خطأ: ${error.message}`); // عرض رسالة الخطأ الواضحة للمستخدم
+        this._initializeData(); // إعادة مزامنة الواجهة مع قاعدة البيانات لإزالة العنصر الذي تمت إضافته بشكل خاطئ
+    }
+}
 
     clearAllItems() {
         this.shoppingData = { 'فواكه': [], 'خضروات': [], 'معلبات':[], 'أخرى': [] };
