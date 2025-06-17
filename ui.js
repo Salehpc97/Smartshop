@@ -1,4 +1,4 @@
-// ui.js
+// /js/ui.js (النسخة الكاملة والنهائية)
 import eventBus from './eventBus.js';
 
 class UIController {
@@ -30,9 +30,9 @@ class UIController {
       title.textContent = category;
       categorySection.appendChild(title);
       const itemList = document.createElement('ul');
-      shoppingData[category].forEach(item => {
+      (shoppingData[category] || []).forEach(item => {
         const listItem = document.createElement('li');
-        listItem.textContent = item.name || item;
+        listItem.textContent = item.name || item; // التعامل مع كلا الهيكلين
         const deleteBtn = document.createElement('button');
         deleteBtn.textContent = 'حذف';
         deleteBtn.onclick = () => eventBus.emit('ui:deleteItem', { name: item.name || item, category });
@@ -44,13 +44,67 @@ class UIController {
     }
   }
 
+  // --- هنا قمنا بملء الدوال المفقودة بالكامل ---
+
   showCustomItemModal(categories) {
-    // ... انسخ كل منطق دالة _showCustomItemModal القديمة إلى هنا ...
-    // تأكد من أن أي `eventBus.emit` داخلها يعمل بشكل صحيح
+    const modal = document.createElement('div');
+    modal.className = 'custom-modal';
+    
+    const modalContent = document.createElement('div');
+    modalContent.className = 'modal-content';
+    
+    const closeBtn = document.createElement('span');
+    closeBtn.className = 'close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.onclick = () => modal.remove();
+    
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.id = 'newItemName';
+    nameInput.placeholder = 'اسم العنصر الجديد';
+
+    const categorySelect = document.createElement('select');
+    categorySelect.id = 'categorySelect';
+    for(const category in categories) {
+        if(category !== 'أخرى') {
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            categorySelect.appendChild(option);
+        }
+    }
+    
+    const confirmBtn = document.createElement('button');
+    confirmBtn.textContent = 'تأكيد الإضافة';
+    confirmBtn.onclick = () => {
+        const itemName = nameInput.value.trim();
+        const selectedCategory = categorySelect.value;
+        if (!itemName) return alert('الرجاء إدخال اسم العنصر');
+        
+        eventBus.emit('ui:addCustomItemConfirmed', { itemName, selectedCategory });
+        modal.remove();
+    };
+
+    modalContent.append(closeBtn, nameInput, categorySelect, confirmBtn);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
   }
 
-  showError(message) { /* ... نفس منطق showError القديم ... */ }
-  hideError() { /* ... نفس منطق hideError القديم ... */ }
-  clearInput() { this.itemInput.value = ''; this.itemInput.focus(); }
+  showError(message) {
+    this.errorMessageContainer.textContent = message;
+    this.errorMessageContainer.style.visibility = 'visible';
+    this.errorMessageContainer.style.opacity = '1';
+  }
+
+  hideError() {
+    this.errorMessageContainer.style.opacity = '0';
+    this.errorMessageContainer.style.visibility = 'hidden';
+  }
+  
+  clearInput() {
+    this.itemInput.value = '';
+    this.itemInput.focus();
+  }
 }
+
 export default UIController;
