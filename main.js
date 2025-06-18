@@ -1,16 +1,20 @@
-// /main.js (النسخة النهائية والكاملة)
+// /main.js (النسخة النهائية والكاملة مع دعم المصادقة)
 import eventBus from './eventBus.js';
 import ApiService from './api.js';
 import UIController from './ui.js';
+// لا نحتاج لـ 'supabase' هنا مباشرة
 
 class App {
-  constructor() {
-    this.userId = 'bcdd1361-a8dc-4feb-88aa-48d3d2724b5a';
+  // تم التعديل: constructor يقبل كائن المستخدم
+  constructor(user) { 
+    this.user = user;
+    this.userId = user.id; // استخدام معرف المستخدم الحقيقي
     this.api = new ApiService(this.userId);
     this.ui = new UIController();
     this.shoppingData = {};
     this.categories = {};
     this.allItemsForAutocomplete = [];
+    
     this._initializeApp();
     this._subscribeToEvents();
   }
@@ -122,7 +126,21 @@ class App {
         this.ui.showError("فشل حفظ العنصر المخصص.");
       }
     });
+    
+    // --- إضافة مستمع لحدث تسجيل الخروج ---
+    eventBus.on('ui:logout', async () => {
+        // بما أن App لا يعرف supabase مباشرة، يجب أن نجلبها
+        const { supabase } = await import('./auth.js'); 
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            alert('حدث خطأ أثناء تسجيل الخروج: ' + error.message);
+        } else {
+            // توجيه المستخدم إلى صفحة تسجيل الدخول بعد الخروج بنجاح
+            window.location.href = 'login.html';
+        }
+    });
   }
 }
 
-new App();
+// تم التعديل: تصدير الكلاس بدلاً من إنشائه مباشرة
+export default App;

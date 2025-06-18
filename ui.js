@@ -24,6 +24,14 @@ class UIController {
     this.itemInput.addEventListener('input', () => {
       eventBus.emit('ui:inputChanged', this.itemInput.value);
     });
+
+    const logoutButton = document.getElementById('logoutBtn');
+    if (logoutButton) { // تحقق إذا كان الزر موجودًا في HTML
+        logoutButton.addEventListener('click', () => {
+            eventBus.emit('ui:logout');
+        });
+    }
+
   }
 
   render(shoppingData) {
