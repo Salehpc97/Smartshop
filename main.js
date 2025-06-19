@@ -51,25 +51,41 @@ class App {
   }
 
   _subscribeToEvents() {
-    eventBus.on('ui:addItem', async (itemName) => {
-      this.ui.hideError();
-      if (!itemName) return;
-      const { category, matchedItem } = this._getCategory(itemName);
+    
+eventBus.on('ui:addCustomItemConfirmed', async ({itemName, selectedCategory}) => {
+  if (this.allItemsForAutocomplete.includes(itemName)) {
+    return alert(`العنصر "${itemName}" موجود بالفعل في النظام.`);
+  }
 
-      if (category === 'أخرى' || !matchedItem) {
-        this.ui.showError(`العنصر "${itemName}" غير معروف.`);
-        return;
-      }
-      if (this.shoppingData[category] && this.shoppingData[category].some(item => (item.name || item) === matchedItem)) {
-        this.ui.showError(`"${matchedItem}" موجود بالفعل في قائمتك.`);
-        return;
-      }
-      this.shoppingData[category] = this.shoppingData[category] || [];
-      this.shoppingData[category].push({ name: matchedItem, category });
-      this.ui.render(this.shoppingData);
-      this.ui.clearInput();
-      this._saveData();
-    });
+  // --- هذا هو الإصلاح الحاسم ---
+  // قبل محاولة الإضافة، تأكد من أن الفئة موجودة. إذا لم تكن كذلك، قم بإنشائها كمصفوفة فارغة.
+  if (!this.categories[selectedCategory]) {
+    this.categories[selectedCategory] = [];
+  }
+  // ---------------------------------
+
+  this.categories[selectedCategory].push(itemName);
+  this.allItemsForAutocomplete.push(itemName);
+
+  // --- وإصلاح حاسم آخر هنا لنفس السبب ---
+  if (!this.shoppingData[selectedCategory]) {
+    this.shoppingData[selectedCategory] = [];
+  }
+  // -------------------------------------
+
+  this.shoppingData[selectedCategory].push({ name: itemName, category: selectedCategory });
+  
+  this.ui.render(this.shoppingData);
+  
+  try {
+    // الآن، قم بحفظ كل من قائمة التسوق والفئات المحدثة
+    await this.api.saveShoppingList(this.shoppingData);
+    await this.api.saveCategories(this.categories);
+  } catch (error) {
+    this.ui.showError("فشل حفظ العنصر المخصص.");
+  }
+});
+
 
     eventBus.on('ui:deleteItem', async ({ name, category }) => {
       if (this.shoppingData[category]) {
