@@ -1,16 +1,16 @@
 // auth.js (النسخة النهائية مع الاستيراد الصحيح)
 
-// --- الخطوة 1: نستورد الدالة مباشرة من الـ CDN ---
-// هذا يضمن أنها ستكون متاحة دائمًا قبل تشغيل بقية الكود
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+// --- هذا هو السطر الحاسم الذي يحل المشكلة ---
+// نقوم بإضافة "+esm" إلى نهاية الرابط لنطلب النسخة الوحدوية
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-// --- الخطوة 2: نقوم بتهيئة العميل وتصديره ---
+// بقية الكود يبقى كما هو، لأنه الآن سيعمل بشكل صحيح
 const SUPABASE_URL = 'https://cbjhgxgniouvkeeonylw.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiamhneGduaW91dmtlZW9ueWx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MjkyOTcsImV4cCI6MjA2NTUwNTI5N30.ebN5OdrM67i2gEsXuY-MriVNVtgDiYOCFDhjoZKs0w4';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// --- الخطوة 3: بقية المنطق يبقى كما هو ---
+// بقية منطق نماذج تسجيل الدخول وإنشاء الحساب
 const loginForm = document.getElementById('login-form');
 const signupForm = document.getElementById('signup-form');
 
