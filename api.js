@@ -1,36 +1,47 @@
-// /js/api.js (النسخة الكاملة والمتوافقة)
+
+
+// api.js (النسخة المحدثة التي ترسل "بطاقة الهوية")
+import { supabase } from './auth.js';
+
 class ApiService {
   constructor(userId) {
     this.userId = userId;
   }
 
-  // المهمة التي يبحث عنها main.js
-  async getShoppingList() {
-    const response = await fetch(`/api/getList?userId=${this.userId}`);
-    if (!response.ok) throw new Error('Failed to fetch shopping list');
-    return response.json();
+  // دالة مساعدة للحصول على "بطاقة الهوية"
+  async _getAuthHeaders() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('User not authenticated');
+    }
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    };
   }
 
-  // المهمة الثانية التي يبحث عنها main.js
+  async getShoppingList() {
+    const headers = await this._getAuthHeaders();
+    const response = await fetch(`/api/getList?userId=${this.userId}`, { headers });
+    if (!response.ok) throw new Error('Failed to fetch list');
+    return response.json();
+  }
+  
   async getCategories() {
     const response = await fetch(`/api/getCategories?userId=${this.userId}`);
     if (!response.ok) throw new Error('Failed to fetch categories');
     return response.json();
   }
 
-  // مهمة الحفظ التي ستحتاجها لاحقًا
   async saveShoppingList(shoppingList) {
+    const headers = await this._getAuthHeaders();
     const response = await fetch('/api/saveShoppingList', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ shoppingList: shoppingList, userId: this.userId }),
+      headers: headers,
+      body: JSON.stringify({ shoppingList, userId: this.userId }),
     });
-    if (!response.ok) throw new Error('Failed to save shopping list');
+    if (!response.ok) throw new Error('Failed to save list');
     return response.json();
   }
-  
-  // يمكنك إضافة بقية دوال الحفظ هنا بنفس الطريقة
 }
-
-// لا تنس التصدير
 export default ApiService;

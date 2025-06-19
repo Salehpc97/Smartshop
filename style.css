@@ -259,3 +259,8 @@ button:hover {
     text-align: center;
     margin-top: 1.5rem;
 }
+
+/* لإخفاء المحتوى قبل التحقق من المصادقة */
+.app-wrapper.hidden {
+    display: none;
+}
