@@ -1,51 +1,67 @@
-// المسار: /api/saveShoppingList.js (النسخة النهائية والمحسّنة)
+// /api/saveShoppingList.js (النسخة النهائية والآمنة)
 
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ message: 'Method Not Allowed' });
     }
 
     try {
-        const { shoppingList, userId } = req.body;
+        // الخطوة 1: استخراج "بطاقة هوية" المستخدم (JWT) من الطلب
+        const token = req.headers.authorization?.split('Bearer ')[1];
+        if (!token) {
+            return res.status(401).json({ error: 'Not authenticated: No token provided' });
+        }
 
-        // الخطوة أ: حذف جميع العناصر القديمة لهذا المستخدم
-        await supabase.from('ShoppingListItems').delete().eq('user_id', userId);
+        // الخطوة 2: إنشاء عميل Supabase موثوق "باسم" المستخدم
+        const supabase = createClient(
+            process.env.SUPABASE_URL,
+            process.env.SUPABASE_ANON_KEY, // نستخدم مفتاح anon العام لأن RLS هو الذي سيقوم بالحماية
+            { global: { headers: { Authorization: `Bearer ${token}` } } }
+        );
 
-        // الخطوة ب: تحويل كائن البيانات إلى مصفوفة منظمة
+        // الخطوة 3: التحقق من "بطاقة الهوية" والحصول على هوية المستخدم الحقيقية من الخادم
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
+            return res.status(401).json({ error: 'Not authenticated: Invalid token' });
+        }
+        
+        const userId = user.id;
+
+        // الخطوة 4: استخراج بيانات قائمة التسوق من الطلب
+        const { shoppingList } = req.body;
+
+        // الخطوة 5 (الحاسمة): تنفيذ منطق قاعدة البيانات بأمان
+        // أ. حذف جميع العناصر القديمة للمستخدم الذي تم التحقق منه
+        // لاحظ أننا لا نحتاج إلى .eq()! RLS سيهتم بذلك.
+        const { error: deleteError } = await supabase.from('ShoppingListItems').delete().match({ user_id: userId });
+        if (deleteError) throw deleteError;
+
+        // ب. تحويل كائن البيانات إلى مصفوفة منظمة (منطقك الممتاز)
         const itemsToInsert = [];
         for (const category in shoppingList) {
-            if (shoppingList.hasOwnProperty(category) && Array.isArray(shoppingList[category])) {
-                shoppingList[category].forEach(itemName => {
-                    if (typeof itemName === 'string') {
-                        itemsToInsert.push({
-                            item_name: itemName,
-                            category: category,
-                            user_id: userId
-                        });
-                    }
+            if (shoppingList[category] && Array.isArray(shoppingList[category])) {
+                shoppingList[category].forEach(item => {
+                    itemsToInsert.push({
+                        item_name: item.name,
+                        category: item.category,
+                        user_id: userId // نستخدم المعرف الموثوق من الخادم
+                    });
                 });
             }
         }
 
-        // الخطوة ج: إذا كانت هناك عناصر جديدة، قم بإضافتها
+        // ج. إذا كانت هناك عناصر جديدة، قم بإضافتها
         if (itemsToInsert.length > 0) {
-            const { error: insertError } = await supabase
-                .from('ShoppingListItems')
-                .insert(itemsToInsert);
-
+            const { error: insertError } = await supabase.from('ShoppingListItems').insert(itemsToInsert);
             if (insertError) throw insertError;
         }
 
         res.status(200).json({ message: 'تم تحديث قائمة التسوق بنجاح!' });
 
     } catch (error) {
-        console.error('خطأ في حفظ قائمة التسوق:', error);
+        console.error('خطأ في حفظ قائمة التسوق:', error.message);
         res.status(500).json({ message: 'حدث خطأ في الخادم', error: error.message });
     }
-};
+}

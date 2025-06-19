@@ -1,44 +1,53 @@
-// /api/saveCategories.js
+// /api/saveCategories.js (النسخة النهائية والآمنة)
 
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-module.exports = async (req, res) => {
-    // === جهاز التنصت الذي زرعناه ===
-    console.log("تم استدعاء saveCategories. جسم الطلب (req.body):", req.body);
-    // ==================================
-
+export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ message: 'Method Not Allowed' });
     }
 
     try {
-        const { categories, userId } = req.body;
-
-        // إضافة تحقق إضافي للتأكد من وجود البيانات
-        if (!categories || !userId) {
-            console.log("بيانات ناقصة في الطلب. لن يتم الحفظ.");
-            return res.status(400).json({ message: 'بيانات ناقصة: الفئات أو معرف المستخدم مفقود.' });
+        // الخطوة 1: استخراج "بطاقة هوية" المستخدم (JWT) من الطلب
+        const token = req.headers.authorization?.split('Bearer ')[1];
+        if (!token) {
+            return res.status(401).json({ error: 'Not authenticated: No token provided' });
         }
 
+        // الخطوة 2: إنشاء عميل Supabase موثوق "باسم" المستخدم
+        const supabase = createClient(
+            process.env.SUPABASE_URL,
+            process.env.SUPABASE_ANON_KEY, // نستخدم مفتاح anon العام لأن RLS هو الذي سيقوم بالحماية
+            { global: { headers: { Authorization: `Bearer ${token}` } } }
+        );
+
+        // الخطوة 3: التحقق من "بطاقة الهوية" والحصول على هوية المستخدم الحقيقية من الخادم
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
+            return res.status(401).json({ error: 'Not authenticated: Invalid token' });
+        }
+        
+        // الآن، لدينا المعرف الموثوق: user.id
+        const userId = user.id;
+
+        // الخطوة 4: استخراج بيانات الفئات من الطلب
+        const { categories } = req.body;
+
+        if (!categories) {
+            return res.status(400).json({ message: 'بيانات الفئات مفقودة.' });
+        }
+
+        // الخطوة 5: تنفيذ منطق قاعدة البيانات باستخدام الهوية الموثوقة
         const { error } = await supabase
             .from('UserCategories')
             .upsert({ user_id: userId, categories_data: categories }, { onConflict: 'user_id' });
-
-        if (error) {
-            // إذا حدث خطأ في قاعدة البيانات، قم بتسجيله وإرساله
-            console.error("خطأ من Supabase:", error);
-            throw error;
-        }
         
-        console.log("تم الحفظ بنجاح للمستخدم:", userId);
+        if (error) throw error;
+        
         res.status(200).json({ message: 'تم تحديث الفئات بنجاح!' });
 
     } catch (error) {
-        console.error('خطأ في حفظ الفئات:', error);
+        console.error('خطأ في حفظ الفئات:', error.message);
         res.status(500).json({ message: 'حدث خطأ في الخادم', error: error.message });
     }
-};
+}

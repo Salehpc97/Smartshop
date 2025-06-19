@@ -1,39 +1,66 @@
-// المسار: /api/addCustomItem.js (ملف جديد)
-const { createClient } = require('@supabase/supabase-js');
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+// /api/addCustomItem.js (النسخة النهائية والآمنة)
 
-module.exports = async (req, res) => {
-    if (req.method !== 'POST') return res.status(405).json({ message: 'Method Not Allowed' });
+import { createClient } from '@supabase/supabase-js';
+
+export default async function handler(req, res) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ message: 'Method Not Allowed' });
+    }
+
     try {
-        const { item, userId, allCategories } = req.body;
+        // الخطوة 1: استخراج "بطاقة هوية" المستخدم (JWT) من الطلب
+        const token = req.headers.authorization?.split('Bearer ')[1];
+        if (!token) {
+            return res.status(401).json({ error: 'Not authenticated: No token provided' });
+        }
+
+        // الخطوة 2: إنشاء عميل Supabase موثوق "باسم" المستخدم
+        const supabase = createClient(
+            process.env.SUPABASE_URL,
+            process.env.SUPABASE_ANON_KEY, // نستخدم مفتاح anon العام لأن RLS هو الذي سيقوم بالحماية
+            { global: { headers: { Authorization: `Bearer ${token}` } } }
+        );
+
+        // الخطوة 3: التحقق من صحة "بطاقة الهوية" والحصول على معرف المستخدم الحقيقي
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
+            return res.status(401).json({ error: 'Not authenticated: Invalid token' });
+        }
         
+        // الآن، لدينا معرف المستخدم الموثوق: user.id
+        const userId = user.id;
+
+        // الخطوة 4: استخراج بيانات العنصر من الطلب
+        const { item, allCategories } = req.body;
+
+        // الخطوة 5: تنفيذ منطق قاعدة البيانات باستخدام الهوية الموثوقة
         // المهمة أ: إضافة العنصر الجديد إلى قائمة التسوق
-        await supabase.from('ShoppingListItems').insert({
+        const { error: insertError } = await supabase.from('ShoppingListItems').insert({
             item_name: item.name,
             category: item.category,
-            user_id: userId
+            user_id: userId // نستخدم المعرف الموثوق من الخادم، وليس من الطلب
         });
         
+        if (insertError) throw insertError; // سيتم التقاط هذا الخطأ في كتلة catch
+
         // المهمة ب: تحديث قائمة الفئات بالكامل
-        await supabase.from('UserCategories').upsert({
-            user_id: userId,
+        const { error: upsertError } = await supabase.from('UserCategories').upsert({
+            user_id: userId, // نستخدم المعرف الموثوق
             categories_data: allCategories
         }, { onConflict: 'user_id' });
-        
+
+        if (upsertError) throw upsertError;
+
         res.status(200).json({ message: 'Custom item and categories updated successfully' });
-   // هذا الكود يوضع بدل كتلة catch الحالية في كلا الملفين: addItem.js و addCustomItem.js
-} catch (error) {
-    console.error('API Error:', error);
 
-    // === هذا هو الجزء الذكي ===
-    // إذا كان الخطأ هو خطأ تكرار من قاعدة البيانات
-    if (error.code === '23505') { 
-        return res.status(409).json({ message: 'هذا العنصر موجود بالفعل في القائمة.' });
+    } catch (error) {
+        console.error('API Error:', error.message);
+
+        // هذا هو منطقك الذكي لمعالجة الأخطاء
+        if (error.code === '23505') { 
+            return res.status(409).json({ message: 'هذا العنصر موجود بالفعل في القائمة.' });
+        }
+
+        res.status(500).json({ message: 'حدث خطأ في الخادم', error: error.message });
     }
-    // =========================
-
-    // لأي خطأ آخر، أرسل خطأ خادم عام
-    res.status(500).json({ message: 'حدث خطأ في الخادم', error: error.message });
 }
-
-};

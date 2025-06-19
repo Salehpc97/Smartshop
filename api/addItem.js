@@ -1,31 +1,60 @@
-// المسار: /api/addItem.js
-const { createClient } = require('@supabase/supabase-js');
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+// /api/addItem.js (النسخة النهائية والآمنة)
 
-module.exports = async (req, res) => {
-    if (req.method !== 'POST') return res.status(405).json({ message: 'Method Not Allowed' });
+import { createClient } from '@supabase/supabase-js';
+
+export default async function handler(req, res) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ message: 'Method Not Allowed' });
+    }
+
     try {
-        const { item, userId } = req.body;
-        await supabase.from('ShoppingListItems').insert({
+        // الخطوة 1: استخراج "بطاقة هوية" المستخدم (JWT) من الطلب
+        const token = req.headers.authorization?.split('Bearer ')[1];
+        if (!token) {
+            return res.status(401).json({ error: 'Not authenticated: No token provided' });
+        }
+
+        // الخطوة 2: إنشاء عميل Supabase موثوق "باسم" المستخدم
+        const supabase = createClient(
+            process.env.SUPABASE_URL,
+            process.env.SUPABASE_ANON_KEY, // نستخدم مفتاح anon العام لأن RLS هو الذي سيقوم بالحماية
+            { global: { headers: { Authorization: `Bearer ${token}` } } }
+        );
+
+        // الخطوة 3: التحقق من "بطاقة الهوية" والحصول على هوية المستخدم الحقيقية من الخادم
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
+            return res.status(401).json({ error: 'Not authenticated: Invalid token' });
+        }
+        
+        // الآن، لدينا المعرف الموثوق: user.id
+        const userId = user.id;
+
+        // الخطوة 4: استخراج بيانات العنصر من الطلب
+        const { item } = req.body;
+
+        // الخطوة 5: تنفيذ منطق قاعدة البيانات باستخدام الهوية الموثوقة
+        const { error: insertError } = await supabase.from('ShoppingListItems').insert({
             item_name: item.name,
             category: item.category,
-            user_id: userId
+            user_id: userId // نستخدم المعرف الموثوق من الخادم، وليس من الطلب
         });
+
+        if (insertError) {
+            // إذا حدث خطأ، قم برميه ليتم التقاطه في كتلة catch
+            throw insertError;
+        }
+
         res.status(200).json({ message: 'Item added successfully' });
-   // هذا الكود يوضع بدل كتلة catch الحالية في كلا الملفين: addItem.js و addCustomItem.js
-} catch (error) {
-    console.error('API Error:', error);
 
-    // === هذا هو الجزء الذكي ===
-    // إذا كان الخطأ هو خطأ تكرار من قاعدة البيانات
-    if (error.code === '23505') { 
-        return res.status(409).json({ message: 'هذا العنصر موجود بالفعل في القائمة.' });
+    } catch (error) {
+        console.error('API Error:', error.message);
+
+        // منطقك الذكي لمعالجة الأخطاء
+        if (error.code === '23505') { 
+            return res.status(409).json({ message: 'هذا العنصر موجود بالفعل في القائمة.' });
+        }
+
+        res.status(500).json({ message: 'حدث خطأ في الخادم', error: error.message });
     }
-    // =========================
-
-    // لأي خطأ آخر، أرسل خطأ خادم عام
-    res.status(500).json({ message: 'حدث خطأ في الخادم', error: error.message });
 }
-
-};
-
