@@ -52,41 +52,6 @@ class App {
 
   _subscribeToEvents() {
     
-eventBus.on('ui:addCustomItemConfirmed', async ({itemName, selectedCategory}) => {
-  if (this.allItemsForAutocomplete.includes(itemName)) {
-    return alert(`العنصر "${itemName}" موجود بالفعل في النظام.`);
-  }
-
-  // --- هذا هو الإصلاح الحاسم ---
-  // قبل محاولة الإضافة، تأكد من أن الفئة موجودة. إذا لم تكن كذلك، قم بإنشائها كمصفوفة فارغة.
-  if (!this.categories[selectedCategory]) {
-    this.categories[selectedCategory] = [];
-  }
-  // ---------------------------------
-
-  this.categories[selectedCategory].push(itemName);
-  this.allItemsForAutocomplete.push(itemName);
-
-  // --- وإصلاح حاسم آخر هنا لنفس السبب ---
-  if (!this.shoppingData[selectedCategory]) {
-    this.shoppingData[selectedCategory] = [];
-  }
-  // -------------------------------------
-
-  this.shoppingData[selectedCategory].push({ name: itemName, category: selectedCategory });
-  
-  this.ui.render(this.shoppingData);
-  
-  try {
-    // الآن، قم بحفظ كل من قائمة التسوق والفئات المحدثة
-    await this.api.saveShoppingList(this.shoppingData);
-    await this.api.saveCategories(this.categories);
-  } catch (error) {
-    this.ui.showError("فشل حفظ العنصر المخصص.");
-  }
-});
-
-
     eventBus.on('ui:deleteItem', async ({ name, category }) => {
       if (this.shoppingData[category]) {
         this.shoppingData[category] = this.shoppingData[category].filter(item => (item.name || item) !== name);
@@ -124,25 +89,40 @@ eventBus.on('ui:addCustomItemConfirmed', async ({itemName, selectedCategory}) =>
       this.ui.showCustomItemModal(this.categories);
     });
 
-    eventBus.on('ui:addCustomItemConfirmed', async ({itemName, selectedCategory}) => {
-      if (this.allItemsForAutocomplete.includes(itemName)) {
-        return alert(`العنصر "${itemName}" موجود بالفعل في النظام.`);
-      }
-      this.categories[selectedCategory].push(itemName);
-      this.allItemsForAutocomplete.push(itemName);
-      this.shoppingData[selectedCategory] = this.shoppingData[selectedCategory] || [];
-      this.shoppingData[selectedCategory].push({ name: itemName, category: selectedCategory });
-      this.ui.render(this.shoppingData);
-      try {
-        await Promise.all([
-            this.api.saveShoppingList(this.shoppingData),
-            this.api.saveCategories(this.categories)
-        ]);
-      } catch (error) {
-        this.ui.showError("فشل حفظ العنصر المخصص.");
-      }
-    });
-    
+    // في ملف main.js، داخل دالة _subscribeToEvents()
+eventBus.on('ui:addCustomItemConfirmed', async ({itemName, selectedCategory}) => {
+  // --- هذا هو الإصلاح الحاسم ---
+  // إذا كان العنصر موجودًا بالفعل، أظهر الرسالة وأوقف التنفيذ فورًا
+  if (this.allItemsForAutocomplete.includes(itemName)) {
+      alert(`العنصر "${itemName}" موجود بالفعل في النظام.`);
+      return; // هذه الجملة هي مفتاح الحل، فهي تمنع استكمال الكود
+  }
+  // ---------------------------------
+
+  // بقية الكود لن يتم تنفيذه إلا إذا كان العنصر جديدًا
+  if (!this.categories[selectedCategory]) {
+      this.categories[selectedCategory] = [];
+  }
+  this.categories[selectedCategory].push(itemName);
+  this.allItemsForAutocomplete.push(itemName);
+
+  if (!this.shoppingData[selectedCategory]) {
+      this.shoppingData[selectedCategory] = [];
+  }
+  this.shoppingData[selectedCategory].push({ name: itemName, category: selectedCategory });
+  
+  this.ui.render(this.shoppingData);
+  
+  try {
+      await Promise.all([
+          this.api.saveShoppingList(this.shoppingData),
+          this.api.saveCategories(this.categories)
+      ]);
+  } catch (error) {
+      this.ui.showError("فشل حفظ العنصر المخصص.");
+  }
+});
+
     // --- إضافة مستمع لحدث تسجيل الخروج ---
     eventBus.on('ui:logout', async () => {
         // بما أن App لا يعرف supabase مباشرة، يجب أن نجلبها
