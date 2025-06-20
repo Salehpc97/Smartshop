@@ -47,3 +47,20 @@ if (loginForm) {
         }
     });
 }
+
+// تسجيل الدخول عبر جوجل
+
+const googleSignInButton = document.getElementById('google-signin-btn');
+
+if (googleSignInButton) {
+    googleSignInButton.addEventListener('click', async () => {
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+        });
+
+        if (error) {
+            alert('فشل تسجيل الدخول عبر جوجل: ' + error.message);
+        }
+        // إذا نجح الأمر، ستقوم Supabase بإعادة توجيه المستخدم تلقائيًا
+    });
+}
