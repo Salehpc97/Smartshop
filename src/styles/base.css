@@ -1,0 +1,17 @@
+/* الأنماط الأساسية التي تنطبق على كل الصفحات */
+body {
+    padding: 0;
+    background-color: aliceblue;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  h1 {
+    text-align: center;
+    padding: 10px;
+    border: 5px solid #121212;
+    color: white;
+    background-color: rgba(14, 4, 4, 0.806);
+    border-radius: 15px;
+    margin-bottom: 30px;
+  }
+  

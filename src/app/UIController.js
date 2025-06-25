@@ -1,5 +1,6 @@
 // /js/ui.js (النسخة الكاملة والنهائية مع كل الميزات)
-import eventBus from './eventBus.js';
+import eventBus from '../eventBus.js';
+import { createCategorySection } from '../src/components/CategorySection.js';
 
 class UIController {
   constructor() {
@@ -34,29 +35,27 @@ class UIController {
 
   }
 
-  render(shoppingData) {
-    this.categoriesList.innerHTML = '';
-    Object.keys(shoppingData).sort().forEach(category => {
-      const categorySection = document.createElement('div');
-      categorySection.className = 'category-section';
-      const title = document.createElement('h3');
-      title.textContent = category;
-      categorySection.appendChild(title);
-      const itemList = document.createElement('ul');
-      (shoppingData[category] || []).forEach(item => {
-        const listItem = document.createElement('li');
-        listItem.textContent = item.name || item;
-        const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = 'حذف';
-        deleteBtn.onclick = () => eventBus.emit('ui:deleteItem', { name: item.name || item, category });
-        listItem.appendChild(deleteBtn);
-        itemList.appendChild(listItem);
-      });
-      categorySection.appendChild(itemList);
-      this.categoriesList.appendChild(categorySection);
-    });
-  }
+    /**
+   * دالة render أصبحت الآن أنظف وأبسط بكثير.
+   * وظيفتها هي "تجميع" المكونات فقط.
+   */
+    render(shoppingData) {
+      // 1. مسح اللوحة (نفس الخطوة)
+      this.categoriesList.innerHTML = '';
   
+      // 2. المرور على الفئات واستدعاء مكون الرسم لكل فئة
+      Object.keys(shoppingData).sort().forEach(categoryName => {
+        const items = shoppingData[categoryName] || [];
+        
+        // استدعاء مكوننا الخارجي لرسم القسم بأكمله
+        const categoryElement = createCategorySection(categoryName, items);
+        
+        // إضافة المكون الجاهز إلى الصفحة
+        this.categoriesList.appendChild(categoryElement);
+      });
+    }
+
+  // دالة أخرى لإنشاء عنصر القسم (القسم الجديد)
   renderSuggestions(suggestions) {
     this.suggestionsContainer.innerHTML = '';
     if (suggestions.length === 0) return;

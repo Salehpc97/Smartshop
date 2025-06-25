@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول - Smart Shop</title>
-    <link rel="stylesheet" href="style.css">
+    <title>إنشاء حساب - Smart Shop</title>
+    <link rel="stylesheet" href="../styles/main.css">
 </head>
 <body>
     <div class="auth-container">
-        <h1>تسجيل الدخول</h1>
-        <form id="login-form">
+        <h1>إنشاء حساب جديد</h1>
+        <form id="signup-form">
             <div class="form-group">
                 <label for="email">البريد الإلكتروني</label>
                 <input type="email" id="email" required>
@@ -18,20 +18,18 @@
                 <label for="password">كلمة المرور</label>
                 <input type="password" id="password" required>
             </div>
-            <button type="submit">دخول</button>
+            <button type="submit">إنشاء الحساب</button>
         </form>
-
+        <p class="auth-switch">لديك حساب بالفعل؟ <a href="login.html">سجّل الدخول</a></p>
         <!-- ... زر تسجيل الدخول/إنشاء الحساب هنا ... -->
        <div class="or-separator"><span>أو</span></div>
        <button type="button" id="google-signin-btn" class="google-btn">
         <img src="/icons/google-icon.png" alt="Google icon"> متابعة باستخدام جوجل
        </button>
 
-        <p class="auth-switch">ليس لديك حساب؟ <a href="signup.html">أنشئ حسابًا جديدًا</a></p>
     </div>
     <!-- سنقوم باستدعاء ملف المصادقة الخاص بنا هنا -->
-    <script type="module" src="./auth.js"></script>
-
+    <script type="module" src="../app/signupPage.js"></script>
 </body>
 
 </body>

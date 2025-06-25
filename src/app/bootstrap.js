@@ -1,6 +1,6 @@
 // app-bootstrap.js (النسخة النهائية مع معالجة السباق)
 
-import { supabase } from './auth.js'; 
+import { supabase } from '../js/auth.js'; 
 import App from './main.js';
 
 function startApp(user) {

@@ -1,0 +1,20 @@
+/* فئات مساعدة عامة */
+.app-wrapper.hidden {
+    display: none;
+  }
+  
+  .error-message {
+    color: #e74c3c;
+    font-size: 14px;
+    margin-top: 8px;
+    height: 16px;
+    text-align: right;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+  }
+  .error-message.visible {
+    visibility: visible;
+    opacity: 1;
+  }
+  

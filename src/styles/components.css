@@ -1,0 +1,142 @@
+/* الأنماط الخاصة بالمكونات المختلفة في التطبيق */
+
+/* --- أزرار عامة --- */
+button {
+    color: #fff;
+    background-color: rgb(60, 190, 190);
+    text-align: center;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background 0.2s, transform 0.2s;
+    margin-right: 5px;
+  }
+  button:hover {
+    background-color: rgb(73, 163, 163);
+    transform: scale(0.97);
+  }
+  
+  /* --- حقل الإدخال والإكمال التلقائي --- */
+  #itemInput {
+    width: 220px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px 5px 0 0;
+    box-sizing: border-box;
+    font-size: 1em;
+    direction: rtl; /* For Arabic support */
+  }
+  .suggestions-container {
+    position: absolute;
+    top: 48px; /* Input height + margin */
+    left: 0;
+    width: 220px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-top: none;
+    z-index: 1000;
+    max-height: 180px;
+    overflow-y: auto;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+    border-radius: 0 0 5px 5px;
+    font-size: 1em;
+    direction: rtl;
+  }
+  .suggestion-item {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fff;
+    text-align: right;
+  }
+  .suggestion-item:last-child { border-bottom: none; }
+  .suggestion-item:hover { background-color: #f0f0f0; }
+  
+  /* --- أقسام الفئات والقوائم --- */
+  .categories h3 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    color: #0b5351;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5px;
+  }
+  .categories ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 15px 0;
+  }
+  .categories li {
+    background: #fff;
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    direction: rtl;
+  }
+  .delete-item {
+    background: none;
+    border: none;
+    color: #c00;
+    font-size: 1.2em;
+    cursor: pointer;
+    margin-left: 10px;
+    transition: color 0.2s, background 0.2s;
+  }
+  .delete-item:hover {
+    color: #fff;
+    background: #c00;
+    border-radius: 50%;
+  }
+  
+  /* --- زر ومكون إضافة عنصر مخصص --- */
+  #addCustomItem {
+    background-color: #4CAF50;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 25px;
+    margin: 15px 0;
+    transition: all 0.3s;
+  }
+  #addCustomItem:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(76,175,80,0.4);
+  }
+  .custom-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+  }
+  .modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    width: 400px;
+    position: relative;
+  }
+  .modal-content input, .modal-content select {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+  }
+  .close {
+    position: absolute;
+    right: 15px;
+    top: 10px;
+    cursor: pointer;
+    font-size: 24px;
+  }
+  

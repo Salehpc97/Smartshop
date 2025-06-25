@@ -1,7 +1,7 @@
 // /main.js (النسخة النهائية والكاملة مع دعم المصادقة)
-import eventBus from './eventBus.js';
-import ApiService from './api.js';
-import UIController from './ui.js';
+import eventBus from '../src/utils/eventBus.js';
+import ApiService from '../services/apiService.js';
+import UIController from './UIController.js';
 // لا نحتاج لـ 'supabase' هنا مباشرة
 
 class App {
@@ -126,7 +126,7 @@ eventBus.on('ui:addCustomItemConfirmed', async ({itemName, selectedCategory}) =>
     // --- إضافة مستمع لحدث تسجيل الخروج ---
     eventBus.on('ui:logout', async () => {
         // بما أن App لا يعرف supabase مباشرة، يجب أن نجلبها
-        const { supabase } = await import('./auth.js'); 
+        const { supabase } = await import('../src/utils/auth.js'); 
         const { error } = await supabase.auth.signOut();
         if (error) {
             alert('حدث خطأ أثناء تسجيل الخروج: ' + error.message);

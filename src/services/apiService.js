@@ -1,5 +1,5 @@
 // /js/api.js (النسخة النهائية والكاملة بالكامل)
-import { supabase } from './auth.js';
+import { supabase } from '../src/utils/auth.js';
 
 class ApiService {
   constructor(userId) {

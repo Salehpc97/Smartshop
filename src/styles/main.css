@@ -1,0 +1,8 @@
+/* الملف الرئيسي الذي يستورد كل الأجزاء الأخرى */
+/* الترتيب مهم هنا! */
+
+@import url('./base.css');
+@import url('./layout.css');
+@import url('./components.css');
+@import url('./auth.css');
+@import url('./utilities.css');
